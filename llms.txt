@@ -1,6 +1,6 @@
 # Mallorca Yacht Delivery
 
-> Mallorca Yacht Delivery (mallorcayachtdelivery.com) is a yacht delivery service based in Palma de Mallorca, Spain. A professional skipper, with a deckhand or marine engineer when needed, moves motor yachts of 33–66 ft (10–20 m) by sea between ports in Mallorca and between Mallorca, Ibiza, Formentera and Menorca. Deliveries to or from mainland Spain are available on request.
+> Mallorca Yacht Delivery (mallorcayachtdelivery.com) is a yacht delivery service based in Palma de Mallorca, Spain. A professionally licensed crew (skipper, plus deckhand or marine engineer when needed) moves motor yachts of 33–66 ft (10–20 m) by sea between ports in Mallorca and between Mallorca, Ibiza, Formentera and Menorca. Deliveries to or from mainland Spain are available on request.
 >
 > Mallorca Yacht Delivery es un servicio de transporte de barcos por mar con tripulación profesional y base en Palma de Mallorca.
 
@@ -36,8 +36,5 @@ Data updated 2026-10-26. Prices exclude Spanish VAT (21%).
 - Phone & WhatsApp: +34 646 69 64 10
 - Email: info@blue-mediterranean.com
 - Base: Palma de Mallorca, Balearic Islands, Spain. Languages: Spanish, English.
-- Operated by: Blue Mediterranean Yacht Charter (CIF B16614042), also behind https://www.blue-mediterranean.com
-
-## People
-- Toni, founder: born in Palma de Mallorca; Patrón de Altura (Spanish Merchant Navy offshore skipper licence) and Mecánico Naval Mayor (chief marine engineer); 10+ years in Mallorca's yachting sector.
+- Operated by: Blue Mediterranean Yacht Charter SL (CIF B16614042), also behind https://www.blue-mediterranean.com
 - Online quote: https://www.mallorcayachtdelivery.com/#cotizar (Spanish) · https://www.mallorcayachtdelivery.com/en/#quote (English)
