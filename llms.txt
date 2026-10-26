@@ -1,40 +1,39 @@
 # Mallorca Yacht Delivery
 
-> Servicio de traslado de yates a motor (delivery de barcos) con base en Palma de Mallorca. Mueve embarcaciones de 33 a 66 pies (10–20 m) con patrón profesional entre puertos de Mallorca, entre Mallorca e Ibiza, Formentera o Menorca, y hasta el muelle de Palma donde cargan los buques de transporte de yates hacia el Caribe y Florida. Los traslados con la península se hacen bajo consulta.
+> Mallorca Yacht Delivery (mallorcayachtdelivery.com) is a yacht delivery service based in Palma de Mallorca, Spain. A professional skipper, with a deckhand or marine engineer when needed, moves motor yachts of 33–66 ft (10–20 m) by sea between ports in Mallorca and between Mallorca, Ibiza, Formentera and Menorca. Deliveries to or from mainland Spain are available on request.
+>
+> Mallorca Yacht Delivery es un servicio de transporte de barcos por mar con tripulación profesional y base en Palma de Mallorca.
 
-Datos actualizados el 2026-10-26. Precios sin IVA (21 %).
+Data updated 2026-10-26. Prices exclude Spanish VAT (21%).
 
-## Servicios
-- [Traslado de barcos entre puertos de Mallorca](https://www.mallorcayachtdelivery.com/traslado-barcos-entre-puertos-mallorca/): cambios de amarre, varaderos, astilleros, invernaje y entregas de compraventa. Normalmente en una jornada.
-- [Traslado de barcos entre Ibiza, Formentera y Mallorca](https://www.mallorcayachtdelivery.com/traslado-barco-ibiza-formentera-mallorca/): en ambos sentidos.
-- [Traslado de barcos entre Menorca y Mallorca](https://www.mallorcayachtdelivery.com/traslado-barco-menorca-mallorca/): Maó y Ciutadella, en ambos sentidos.
-- [Carga de yates en buque al Caribe desde Palma](https://www.mallorcayachtdelivery.com/carga-yates-buque-caribe/): traslado al muelle de carga, preparación del barco y maniobra junto al loadmaster de la naviera; recogida a la vuelta. El flete lo factura la naviera.
+## Pages
+- [Home (Spanish)](https://www.mallorcayachtdelivery.com/): service overview, quote calculator, rates, routes, FAQ.
+- [Home (English)](https://www.mallorcayachtdelivery.com/en/): the same in English.
+- [Deliveries between Mallorca ports](https://www.mallorcayachtdelivery.com/traslado-barcos-entre-puertos-mallorca/): berth changes, boatyards, winter storage, sales handovers. Usually one day.
+- [Ibiza & Formentera ↔ Mallorca](https://www.mallorcayachtdelivery.com/traslado-barco-ibiza-formentera-mallorca/)
+- [Menorca ↔ Mallorca](https://www.mallorcayachtdelivery.com/traslado-barco-menorca-mallorca/)
+- [Cargo ship loading in Palma (optional extra)](https://www.mallorcayachtdelivery.com/carga-yates-buque-caribe/)
 
-## Tarifas
-- Patrón profesional 33–46 ft (10–14 m): 250–300 € por jornada.
-- Patrón profesional 47–66 ft (15–20 m): 350–450 € por jornada.
-- Más de 66 ft: a consultar.
-- Marinero/a de maniobra: 160 €/día. Mecánico/a naval a bordo: 250 €/día. Revisión por mecánico naval en origen: 280 €.
-- Dietas: 40 € por persona y día desde el segundo día. Día de espera por meteorología con el equipo en puerto: 60 % de la tarifa diaria.
-- Combustible, amarres y tasas: a cargo del armador, a coste real, con un fondo de provisión de 1.000–2.500 € que se liquida contra tickets.
+## Rates
+- Professional skipper 33–46 ft (10–14 m): €250–300 per day.
+- Professional skipper 47–66 ft (15–20 m): €350–450 per day. Over 66 ft: on request.
+- Deckhand: €160/day. Marine engineer on board: €250/day. Pre-departure engineer check: €280.
+- Per diem: €40 per person per day from day two. Weather standby with crew in port: 60% of the day rate.
+- Fuel, berths and port fees: paid by the owner at cost, with a €1,000–2,500 float settled against receipts.
 
-## Ejemplos (motora de 46 ft de planeo, solo patrón, sin combustible)
-- Port d'Alcúdia → Palma: 92 millas, 5 h 10 min a 18 nudos, 1 jornada, ≈ 405 € + IVA.
-- Ibiza → Palma: 74 millas, 4 h 10 min a 18 nudos, 2 jornadas, ≈ 770 € + IVA. Palma → Ibiza ≈ 430 € + IVA.
-- Ciutadella → Palma: 98 millas, 5 h 30 min a 18 nudos, 2 jornadas, ≈ 795 € + IVA.
+## Examples (46 ft planing motor yacht, skipper only, excluding fuel)
+- Port d'Alcúdia → Palma: 92 nm, 5 h 10 min at 18 kn, 1 day, ≈ €405 + VAT.
+- Ibiza → Palma: 74 nm, 4 h 10 min at 18 kn, 2 days, ≈ €770 + VAT. Palma → Ibiza ≈ €430 + VAT.
+- Ciutadella (Menorca) → Palma: 98 nm, 5 h 30 min at 18 kn, 2 days, ≈ €795 + VAT.
 
-## Distancias por mar (millas náuticas, aproximadas)
+## Sea distances (nautical miles, approximate)
 - Ibiza – Palma 74; Ibiza – Port d'Andratx 63; Formentera – Palma 82; Ibiza – Formentera 12.
-- Ciutadella – Palma 98; Ciutadella – Port d'Alcúdia 37; Maó – Palma 113; Maó – Ciutadella 39.
+- Ciutadella – Palma 98; Ciutadella – Port d'Alcúdia 37; Mahón (Maó) – Palma 113; Maó – Ciutadella 39.
 - Palma – Port d'Alcúdia 92; Palma – Port de Sóller 51; Palma – Cala d'Or 48; Palma – Port d'Andratx 21.
-- Península (bajo consulta): Barcelona – Palma 138; Valencia – Palma 148; Dénia – Palma 134.
+- Mainland (on request): Barcelona – Palma 138; Valencia – Palma 148; Dénia – Palma 134.
 
-## Carga en buque
-- Los buques de transporte de yates cargan en Palma hacia el Caribe (Antigua, St. Thomas) y Florida (Fort Lauderdale) entre septiembre y enero, y descargan en Palma de vuelta entre febrero y junio, según los calendarios publicados por las navieras para 2026.
-- Travesía aproximada del buque: Palma → Antigua / St. Thomas ≈ 12 días; → Fort Lauderdale ≈ 17 días.
-
-## Contacto
-- Teléfono y WhatsApp: +34 646 69 64 10
+## Contact
+- Phone & WhatsApp: +34 646 69 64 10
 - Email: info@blue-mediterranean.com
-- Base: Palma, Illes Balears (España). Idiomas: español e inglés.
-- Presupuesto en línea: https://www.mallorcayachtdelivery.com/#cotizar
+- Base: Palma de Mallorca, Balearic Islands, Spain. Languages: Spanish, English.
+- Online quote: https://www.mallorcayachtdelivery.com/#cotizar (Spanish) · https://www.mallorcayachtdelivery.com/en/#quote (English)
