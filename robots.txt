@@ -1,0 +1,21 @@
+# Rastreadores de buscadores y de IA bienvenidos
+User-agent: *
+Allow: /
+
+# Buscadores con IA (respuesta y entrenamiento): acceso explícito
+User-agent: Googlebot
+User-agent: Google-Extended
+User-agent: Bingbot
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: GPTBot
+User-agent: ClaudeBot
+User-agent: Claude-SearchBot
+User-agent: Claude-User
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+User-agent: Applebot
+User-agent: Applebot-Extended
+Allow: /
+
+Sitemap: https://www.mallorcayachtdelivery.com/sitemap.xml
