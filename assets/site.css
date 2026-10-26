@@ -406,3 +406,23 @@ footer .nap a{color:var(--fg)}
 @media (max-width:600px){.hdr-r .lang{display:none}.hdr .wrap{gap:12px}}
 @media (max-width:980px){.hero{--hz:350px}.hero h1{margin-bottom:96px}.hero h1 span{font-size:20px;margin-top:12px}}
 @media (max-width:480px){.trust .wrap{grid-template-columns:1fr}.trust .wrap>div,.trust .wrap>div:nth-child(even){padding:14px 0;border-left:0}.trust .wrap>div+div{border-top:1px solid var(--line)}}
+/* Fundador */
+.founder{padding-block:clamp(48px,7vw,88px)}
+.fcard{display:grid;grid-template-columns:auto minmax(0,1fr);gap:40px;align-items:start;padding:clamp(24px,4vw,44px);border:1px solid var(--line);border-radius:16px;background:linear-gradient(135deg,var(--surface),var(--bg))}
+.fmark{width:120px;height:120px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(180deg,#0B2340,#24476E);color:#fff;font:300 52px var(--f-sans);box-shadow:0 0 0 6px var(--bg),0 0 0 7px var(--line)}
+.fcard h2{font-size:clamp(24px,3vw,34px);font-weight:600;margin:12px 0 18px}
+.fcard .prose a{color:var(--accent)}
+.creds{list-style:none;margin:22px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+.creds li{padding:7px 13px;border-radius:30px;border:1px solid var(--line);background:var(--bg);font:500 12.5px var(--f-mono);letter-spacing:.03em}
+@media (max-width:700px){.fcard{grid-template-columns:1fr;gap:20px}.fmark{width:72px;height:72px;font-size:32px}}
+footer .nap .tit{display:inline-block;margin-top:6px;font-size:12px;color:var(--mute)}
+/* Páginas legales */
+.legalpage{max-width:780px}
+.legalpage h2{font-size:21px;font-weight:600;margin:36px 0 10px}
+.legalpage p,.legalpage li{color:var(--mute);font-size:15.5px}
+.legalpage p+p{margin-top:10px}
+.legalpage ul{padding-left:20px}
+.legalpage table{margin-top:12px}
+.legalpage dl{display:grid;grid-template-columns:max-content 1fr;gap:6px 20px;font-size:15.5px}
+.legalpage dt{color:var(--fg);font-weight:600}.legalpage dd{margin:0;color:var(--mute)}
+@media (max-width:560px){.legalpage dl{grid-template-columns:1fr;gap:2px}.legalpage dd{margin-bottom:8px}}
