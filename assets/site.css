@@ -409,12 +409,12 @@ footer .nap a{color:var(--fg)}
 /* Fundador */
 .founder{padding-block:clamp(48px,7vw,88px)}
 .fcard{display:grid;grid-template-columns:auto minmax(0,1fr);gap:40px;align-items:start;padding:clamp(24px,4vw,44px);border:1px solid var(--line);border-radius:16px;background:linear-gradient(135deg,var(--surface),var(--bg))}
-.fmark{width:120px;height:120px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(180deg,#0B2340,#24476E);color:#fff;font:300 52px var(--f-sans);box-shadow:0 0 0 6px var(--bg),0 0 0 7px var(--line)}
+.fmark{width:140px;height:140px;border-radius:50%;object-fit:cover;display:block;background:var(--surface);box-shadow:0 0 0 6px var(--bg),0 0 0 7px var(--line)}
 .fcard h2{font-size:clamp(24px,3vw,34px);font-weight:600;margin:12px 0 18px}
 .fcard .prose a{color:var(--accent)}
 .creds{list-style:none;margin:22px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
 .creds li{padding:7px 13px;border-radius:30px;border:1px solid var(--line);background:var(--bg);font:500 12.5px var(--f-mono);letter-spacing:.03em}
-@media (max-width:700px){.fcard{grid-template-columns:1fr;gap:20px}.fmark{width:72px;height:72px;font-size:32px}}
+@media (max-width:700px){.fcard{grid-template-columns:1fr;gap:20px}.fmark{width:96px;height:96px}}
 footer .nap .tit{display:inline-block;margin-top:6px;font-size:12px;color:var(--mute)}
 /* Páginas legales */
 .legalpage{max-width:780px}
