@@ -199,9 +199,9 @@ input[type=range]{width:100%;accent-color:var(--acc)}
 .mfloat .btn{background:rgba(10,23,38,.94);box-shadow:0 8px 24px rgba(0,0,0,.35)}
 
 /* ---------- Escaparate ---------- */
-.sc-hero{position:relative;isolation:isolate;padding-block:clamp(48px,7vw,96px) 34px;overflow:hidden}
+.sc-hero{position:relative;isolation:isolate;padding-block:clamp(64px,9vw,132px) 34px;overflow:hidden}
 .sc-hero::before{content:"";position:absolute;inset:0;z-index:-2;
-  background:#06223A url(/assets/hero/yate-aereo-1600.jpg) center/cover no-repeat}
+  background:#06223A url(/assets/hero/yate-aereo-1600.jpg) 50% 2%/cover no-repeat}
 .sc-hero::after{content:"";position:absolute;inset:0;z-index:-1;background:
   linear-gradient(90deg,rgba(5,14,24,.93) 0%,rgba(5,14,24,.74) 38%,rgba(5,14,24,.30) 68%),
   linear-gradient(0deg,var(--bg) 1%,rgba(5,14,24,.10) 52%)}
@@ -462,7 +462,7 @@ const CONFIG = {
   phone: '+34646696410', phoneHuman: '+34 646 69 64 10', wa: '34646696410',
   email: 'info@blue-mediterranean.com',
   publicUrl: '',          // vacío = esta misma página (https://www.mallorcayachtdelivery.com/seguimiento/)
-  defaultPin: '1852',     // 1852 m = 1 milla náutica. Cámbielo desde Ajustes.
+  defaultPin: '4444',     // PIN inicial del panel del capitán. Cámbielo desde Ajustes.
   storageKey: 'myd.tracker.v1',
   refreshSec: 60,
 };
@@ -965,7 +965,7 @@ function viewShowcase(){
   <div class="sc">
     <section class="sc-hero">
       <div class="wrap">
-        <div class="row sb"><span class="eyebrow">Cuaderno de entregas · Mediterráneo occidental</span><span id="demoTag"></span></div>
+        <div class="row"><span class="eyebrow">Cuaderno de entregas · Mediterráneo occidental</span><span id="demoTag"></span></div>
         <h1><b>Cada milla,</b><br>documentada.</h1>
         <p class="sub">Travesías completadas por nuestra tripulación profesional: de la península, la Costa Azul y las islas hasta Mallorca. Rutas, tiempos y el informe del patrón de cada entrega.</p>
         <div id="demoNote"></div>
@@ -1221,7 +1221,7 @@ function viewAdmin(){
       <p class="mute" style="font-size:14px">Gestión de travesías, posiciones, bitácora y enlaces de seguimiento.</p>
       <input class="in pin" id="pin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="12" placeholder="••••" aria-label="PIN">
       <button class="btn p" type="submit">Entrar</button>
-      ${!S.settings.pinHash ? `<p class="hint">PIN inicial: <b class="mono" style="color:var(--fg)">${CONFIG.defaultPin}</b> (una milla náutica en metros). Cámbielo en Ajustes tras entrar.</p>` : ''}</form></div>`;
+      ${!S.settings.pinHash ? `<p class="hint">PIN inicial: <b class="mono" style="color:var(--fg)">${CONFIG.defaultPin}</b>. Cámbielo en Ajustes tras entrar.</p>` : ''}</form></div>`;
     $('#pin').focus();
     $('#lg').onsubmit = async e => { e.preventDefault(); if (await checkPin($('#pin').value.trim())){ ss.set('myd.admin', '1'); viewAdmin(); } else { toast('PIN incorrecto', 'bad'); $('#pin').value = ''; } };
     return;
