@@ -29,10 +29,10 @@
   MALLORCA YACHT DELIVERY · TRACKER (archivo único)
   ─────────────────────────────────────────────────
   Vistas:
-    ./                     → Escaparate público (historial de entregas)
+    ./                     → Introducir código de seguimiento
     ./#/seguir             → Introducir código de seguimiento
     ./?tracking=MYD-XXXX   → Seguimiento en vivo para el armador
-    ./#/capitan            → Panel del capitán (PIN por defecto: 1852 — cámbielo en Ajustes)
+    ./#/capitan            → Panel del capitán (PIN en CONFIG.pin, solo lo conoce el administrador)
     ?embed=1               → Oculta la cabecera para incrustar en un <iframe>
 
   Datos: se guardan en localStorage de este navegador. Para que el armador vea la posición
@@ -444,10 +444,6 @@ body.embed .fab{display:none}
 <dialog id="dlg"></dialog>
 <div id="print" aria-hidden="true"></div>
 
-<!-- Historial público incrustado (opcional). Panel del capitán → Ajustes → "Exportar historial público" y pegue aquí el JSON.
-     Si está vacío, el escaparate usa los datos guardados en el navegador (o los de ejemplo). -->
-<script type="application/json" id="myd-showcase"></script>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
 <script>
@@ -462,8 +458,9 @@ const CONFIG = {
   phone: '+34646696410', phoneHuman: '+34 646 69 64 10', wa: '34646696410',
   email: 'info@blue-mediterranean.com',
   publicUrl: '',          // vacío = esta misma página (https://www.mallorcayachtdelivery.com/seguimiento/)
-  defaultPin: '4444',     // PIN inicial del panel del capitán. Cámbielo desde Ajustes.
-  storageKey: 'myd.tracker.v1',
+  pin: '4444',            // PIN del panel del capitán. Solo se cambia aquí, en el código.
+  alertTo: 'info@blue-mediterranean.com',  // Aviso por email si se edita una travesía ya finalizada.
+  storageKey: 'myd.tracker.v2',
   refreshSec: 60,
 };
 
@@ -607,97 +604,72 @@ function synthTrack(v, t0, t1, kn, seed, step = 30){ const P = pts(v), total = r
     d = Math.min(total, d + kn * step / 60 * (0.95 + r() * 0.08)); if (d >= total) break; }
   return out; }
 
-function seed(){
-  const now = Date.now(), H = 3.6e6, M = 60000;
-  const voyages = [];
-  // [salida, origen, destino, barco, nudos crucero, consumo L/h, informe del patrón, mar, anonimizar]
-  const DONE = [
-    ['2026-10-12T07:40','bcn','pmi',{name:'Mestral',model:'Princess F50',builder:'Princess Yachts',length:15.6,year:2022,flag:'GB',engines:'2× Volvo Penta IPS 800'},22,190,'Salida con mar llana y Tramontana flojita de popa desde el través de Dragonera. Motores y temperaturas nominales toda la travesía. Entrega en Club de Mar con check-out técnico y reportaje fotográfico.',{bf:3,wave:.5,wind:'N 9 kn'},false],
-    ['2026-09-27T06:30','atb','pmi',{name:'Lady Blau',model:'Riva 56 Rivale',builder:'Riva',length:17.3,year:2021,flag:'MT',engines:'2× MAN V8 1000'},24,260,'Travesía directa de 290 millas con ventana meteorológica confirmada 72 h antes. Mistral residual en el golfo de León, mar de popa. Repostaje completo en origen; llegada a Palma con un 22 % de reserva.',{bf:4,wave:1.1,wind:'NO 16 kn'},true],
-    ['2026-09-10T08:00','vlc','pmi',{name:'Siroco',model:'Azimut 55 Fly',builder:'Azimut Yachts',length:16.8,year:2019,flag:'ES',engines:'2× Cummins QSM11 715'},20,200,'Cruce del canal de Ibiza al norte de las Pitiusas con Levante flojo. Sustituido en origen un filtro decantador. Sin incidencias en travesía; entrega al armador en Palma a la hora prevista.',{bf:3,wave:.7,wind:'E 10 kn'},false],
-    ['2026-08-22T09:15','ibz','pmi',{name:'Es Vedrà',model:'Axopar 37 Sun-Top',builder:'Axopar',length:11.5,year:2023,flag:'ES',engines:'2× Mercury V8 300'},28,110,'Salto corto con mar llana. Navegación a régimen económico para cuidar los fueraborda recién revisados. Entrega en pantalán con lavado de agua dulce.',{bf:2,wave:.3,wind:'SO 6 kn'},false],
-    ['2026-07-30T07:00','mah','pmi',{name:'Xaloc',model:'Fairline Squadron 50',builder:'Fairline',length:15.9,year:2020,flag:'GB',engines:'2× Volvo Penta D11 725'},20,185,'Rumbo por el sur de Mallorca, dejando Cabrera por babor. Fuerte calor: vigilancia reforzada de temperaturas de escape y sala de máquinas. Llegada sin novedad.',{bf:3,wave:.6,wind:'SE 11 kn'},false],
-    ['2026-06-14T07:30','den','pmi',{name:'Bonança',model:'Beneteau Gran Turismo 45',builder:'Beneteau',length:13.9,year:2021,flag:'ES',engines:'2× Volvo Penta IPS 600'},22,140,'Ventana perfecta con mar en calma. Prueba de mar completa en las primeras 5 millas antes de abrir rumbo a Mallorca. Check-out con informe de horas de motor.',{bf:2,wave:.2,wind:'NE 5 kn'},false],
-    ['2026-05-20T05:30','mrs','pmi',{name:'Blue Calanque',model:'Sunseeker Manhattan 55',builder:'Sunseeker',length:17.0,year:2018,flag:'FR',engines:'2× Volvo Penta D13 900'},18,230,'Salida al alba tras 24 h de espera por Mistral. Mar residual de 1 m las primeras 40 millas, después en calma. Tripulación de 3 (patrón, marinero y mecánico) por la distancia.',{bf:4,wave:1.2,wind:'NO 18 kn'},true],
-    ['2026-04-27T07:00','tgn','adr',{name:'Delta',model:'De Antonio Yachts D50 Open',builder:'De Antonio Yachts',length:15.1,year:2023,flag:'ES',engines:'4× Mercury Verado 400'},24,210,'Entrega de unidad nueva desde astillero. Rodaje respetado según fabricante y registro de parámetros cada hora. Recepción en Port Adriano con el broker.',{bf:3,wave:.6,wind:'O 9 kn'},false],
-    ['2026-04-08T06:45','ali','pmi',{name:'Tabarca',model:'Prestige 520 Fly',builder:'Prestige Yachts',length:16.0,year:2020,flag:'ES',engines:'2× Volvo Penta IPS 950'},18,170,'Navegación por el norte de Ibiza para evitar el mar de fondo del sur. Parada técnica no necesaria: autonomía calculada con reserva del 25 %.',{bf:4,wave:1.0,wind:'SO 15 kn'},false],
-    ['2025-10-18T08:00','bcn','and',{name:'Galatea',model:'Absolute 52 Fly',builder:'Absolute Yachts',length:16.0,year:2019,flag:'IT',engines:'2× Volvo Penta IPS 800'},20,180,'Llegada a Andratx a media tarde con Poniente flojo. Fondeo de cortesía para revisión final de sentinas y entrega al capitán residente.',{bf:3,wave:.6,wind:'O 10 kn'},false],
-    ['2025-09-02T05:00','cns','pmi',{name:'Nero',model:'Pershing 6X',builder:'Pershing',length:18.9,year:2022,flag:'MT',engines:'2× MAN V12 1550'},30,380,'Barco de altas prestaciones: travesía a 30 kn de crucero con monitorización continua de parámetros. Mar llana todo el golfo. Entrega en Palma en el mismo día.',{bf:2,wave:.4,wind:'N 7 kn'},true],
-    ['2025-07-11T09:00','fmt','pmi',{name:'Illetes',model:'Galeon 500 Fly',builder:'Galeon',length:15.6,year:2021,flag:'PL',engines:'2× Volvo Penta D11 725'},22,175,'Fin de temporada de alquiler en Formentera. Inspección de casco y hélices en origen. Cruce tranquilo con Migjorn flojo.',{bf:3,wave:.5,wind:'S 8 kn'},false],
-    ['2025-06-05T06:00','vlc','alc',{name:'Albufera',model:'Astondoa 52 Fly',builder:'Astondoa',length:16.4,year:2017,flag:'ES',engines:'2× MAN R6 800'},18,175,'Ruta por la costa norte, montando Dragonera y Formentor. Mar de fondo del NE en la tramuntana mallorquina; velocidad ajustada para confort y seguridad.',{bf:4,wave:1.3,wind:'NE 15 kn'},false],
-    ['2025-05-12T07:15','gin','pmi',{name:'Garbí',model:'Cranchi E52 S Evoluzione',builder:'Cranchi',length:16.0,year:2022,flag:'ES',engines:'2× Volvo Penta IPS 800'},24,190,'Recogida en Port Ginesta tras compraventa. Revisión documental con el broker y travesía directa. Entrega con informe completo para el nuevo armador.',{bf:2,wave:.4,wind:'E 7 kn'},false],
+/* ============================================================
+   TRAVESÍAS DE EJEMPLO (solo lectura)
+   No se guardan en el panel del capitán: son la referencia pública
+   para que un armador vea exactamente cómo funciona el seguimiento.
+   ============================================================ */
+const DEMO_SPECS = [
+  {id:'MYD-2610-MESTRL', dep:'2026-10-12T07:40', from:'bcn', to:'pmi', kn:22, lph:190, fuelEnd:34,
+   vessel:{name:'Mestral', model:'Princess F50', builder:'Princess Yachts', length:15.6, beam:4.4, year:2022, flag:'GB', engines:'2× Volvo Penta IPS 800', fuelCap:1900},
+   sea:{bf:3, wave:.5, wind:'N 9 kn'},
+   crew:[], summary:'Traslado directo Barcelona → Palma. Salida con mar llana y Tramontana flojita de popa desde el través de Dragonera. Parámetros de motor nominales durante toda la travesía. Entrega en Club de Mar con check-out técnico y reportaje fotográfico firmado por el armador.'},
+  {id:'MYD-2609-RIVA56', dep:'2026-09-27T06:30', from:'atb', to:'pmi', kn:23, lph:260, fuelEnd:21,
+   vessel:{name:'Lady Blau', model:'Riva 56 Rivale', builder:'Riva', length:17.3, beam:4.7, year:2021, flag:'MT', engines:'2× MAN V8 1000', fuelCap:3200},
+   sea:{bf:4, wave:1.1, wind:'NO 16 kn'},
+   crew:[{role:'Marinero/a', name:'', cert:'Formación Básica STCW'}, {role:'Mecánico/a', name:'', cert:'Mecánico naval'}],
+   summary:'Travesía de altura Antibes → Palma con ventana meteorológica confirmada 72 h antes de zarpar. Mistral residual en el golfo de León con mar de popa; guardias de 3 h y escucha permanente en canal 16. Repostaje completo en origen y llegada a Palma con un 21 % de reserva.'},
+  {id:'MYD-2608-AXOP37', dep:'2026-08-22T09:15', from:'ibz', to:'pmi', kn:26, lph:105, fuelEnd:48,
+   vessel:{name:'Es Vedrà', model:'Axopar 37 Sun-Top', builder:'Axopar', length:11.5, beam:3.3, year:2023, flag:'ES', engines:'2× Mercury V8 300', fuelCap:730},
+   sea:{bf:2, wave:.3, wind:'SO 6 kn'},
+   crew:[], summary:'Salto corto Ibiza → Palma con mar llana. Navegación a régimen económico para cuidar unos fueraborda recién revisados. Entrega en pantalán con lavado de agua dulce y comprobación de niveles.'},
+];
+function buildDemo(sp, i){
+  const H = 3.6e6, M = 60000;
+  const v = baseVoyage();
+  v.id = sp.id; v.demo = true; v.status = 'completed'; v.createdAt = new Date(Date.parse(sp.dep) - 6 * 86400000).toISOString();
+  v.vessel = {...v.vessel, ...sp.vessel, lph: sp.lph};
+  v.origin = portPt(sp.from); v.dest = portPt(sp.to);
+  v.waypoints = (ROUTES[sp.from + '-' + sp.to] || []).map(([lat, lng]) => ({lat, lng}));
+  v.cruiseKn = sp.kn; v.depart = new Date(sp.dep).toISOString();
+  const nm = routeNm(v), hrs = nm / sp.kn + 0.35, t0 = Date.parse(v.depart), t1 = t0 + hrs * H;
+  v.arrived = new Date(t1).toISOString();
+  v.track = synthTrack(v, t0, t1, sp.kn, 'demo' + i, nm > 200 ? 20 : 10);
+  v.track.push({t: v.arrived, lat: v.dest.lat, lng: v.dest.lng, sog: 0, cog: 0, src: 'gps'});
+  v.sea = {...sp.sea, note: '', t: v.depart};
+  v.checklist = Object.fromEntries(CHECKS.map(([k], j) => [k, new Date(t0 - (150 - j * 10) * M).toISOString()]));
+  v.crew = [{role: 'Patrón', name: '', cert: 'Capitán de Yate · STCW'}, ...sp.crew];
+  const at = h => new Date(t0 + h * H).toISOString();
+  v.log = [
+    {id: 'l' + i + '1', t: new Date(t0 - 155 * M).toISOString(), type: 'tec', pub: true, text: `Check-in técnico en ${v.origin.name}: sala de máquinas, niveles, sentinas, gobierno y electrónica revisados punto por punto. Reportaje fotográfico de estado enviado al armador.`},
+    {id: 'l' + i + '2', t: new Date(t0 - 95 * M).toISOString(), type: 'seg', pub: true, text: 'Balsa, chalecos, bengalas y extintores comprobados en fecha. EPIRB y AIS operativos.'},
+    {id: 'l' + i + '3', t: new Date(t0 - 70 * M).toISOString(), type: 'met', pub: true, text: `Parte meteorológico confirmado: ${sp.sea.wind}, ${douglas(sp.sea.wave).toLowerCase()}. Ventana de salida validada.`},
+    {id: 'l' + i + '4', t: new Date(t0 - 40 * M).toISOString(), type: 'fuel', pub: true, text: `Repostaje en origen. Depósitos al 97 % (${fmtN(Math.round(sp.vessel.fuelCap * .97 / 10) * 10)} L) y reserva calculada para la travesía con margen del 25 %.`},
+    {id: 'l' + i + '5', t: v.depart, type: 'nav', pub: true, text: `Largamos amarras en ${v.origin.name}. Rumbo a ${v.dest.name}, ${Math.round(nm)} millas previstas a ${sp.kn} kn de crucero.`},
+    {id: 'l' + i + '6', t: at(hrs * .33), type: 'nav', pub: true, text: `Navegando a ${sp.kn} kn. Motores con temperaturas y presiones nominales; ronda de sala de máquinas sin novedad.`},
+    {id: 'l' + i + '7', t: at(hrs * .55), type: 'met', pub: true, text: `Mitad de travesía. Viento ${sp.sea.wind}, ola de ${fmtN(sp.sea.wave, 1)} m. Sin cambios respecto al parte.`},
+    {id: 'l' + i + '8', t: at(hrs * .82), type: 'fuel', pub: true, text: `Consumo acorde a lo previsto: ${sp.lph} L/h de media. Combustible a bordo por encima de la reserva planificada.`},
+    {id: 'l' + i + '9', t: v.arrived, type: 'port', pub: true, text: `Atracados en ${v.dest.name}. Check-out técnico, lectura de horas de motor y reportaje fotográfico de entrega.`},
   ];
-  DONE.forEach((d, i) => {
-    const [dep, from, to, vessel, kn, lph, summary, sea, anon] = d; const v = baseVoyage();
-    v.id = genId(new Date(dep), 'done' + i); v.status = 'completed'; v.vessel = {...v.vessel, ...vessel, lph}; v.origin = portPt(from); v.dest = portPt(to);
-    v.waypoints = (ROUTES[from + '-' + to] || []).map(([lat, lng]) => ({lat, lng})); v.cruiseKn = kn; v.depart = new Date(dep).toISOString();
-    const nm = routeNm(v), hrs = nm / kn + 0.3, t0 = Date.parse(v.depart), t1 = t0 + hrs * H; v.arrived = new Date(t1).toISOString();
-    v.track = synthTrack(v, t0, t1, kn, 'd' + i); v.track.push({t: v.arrived, lat: v.dest.lat, lng: v.dest.lng, sog: 0, cog: 0, src: 'gps'});
-    v.sea = {...sea, note: '', t: v.depart};
-    v.checklist = Object.fromEntries(CHECKS.map(([k]) => [k, new Date(t0 - 80 * M).toISOString()]));
-    v.crew = [{role:'Patrón', name:'', cert:'Capitán de Yate · STCW'}, ...(nm > 200 || vessel.length > 17 ? [{role:'Marinero/a', name:'', cert:'Formación Básica STCW'}] : []), ...(from === 'mrs' ? [{role:'Mecánico/a', name:'', cert:'Mecánico naval'}] : [])];
-    v.log = [
-      {id: uid(), t: new Date(t0 - 90 * M).toISOString(), type: 'tec', pub: true, text: `Check-in técnico completado en ${v.origin.name}: sala de máquinas, sentinas, seguridad y electrónica OK.`},
-      {id: uid(), t: v.depart, type: 'nav', pub: true, text: `Salida de ${v.origin.name}. Viento ${sea.wind}, ${douglas(sea.wave).toLowerCase()}.`},
-      {id: uid(), t: new Date(t0 + hrs * H * .5).toISOString(), type: 'nav', pub: true, text: `Medio camino. Navegando a ${kn} kn, motores con parámetros nominales.`},
-      {id: uid(), t: v.arrived, type: 'port', pub: true, text: `Llegada a ${v.dest.name}. Check-out técnico y reportaje fotográfico entregados al armador.`},
-    ];
-    v.report = {nm: Math.round(nm), hours: +hrs.toFixed(2), fuelL: Math.round(hrs * lph / 10) * 10, engineH: +(hrs + .4).toFixed(1), summary, incidents: ''};
-    v.showcase = true; v.anonymize = anon; v.fuelPct = 25; v.privacy = {radius: 5, delayMin: 15, showTrack: true};
-    v.owner = {name: 'Armador (ejemplo)', phone: '', email: ''}; voyages.push(v);
-  });
-  // En navegación A — Barcelona → Palma
-  const a = baseVoyage(); a.id = 'MYD-2610-TRMN26'; a.status = 'active';
-  a.vessel = {name:'Tramuntana', model:'Azimut S6', builder:'Azimut Yachts', length:18.8, beam:5.0, year:2023, flag:'ES', engines:'3× Volvo Penta IPS 600', fuelCap:2850, lph:240};
-  a.owner = {name:'Armador (ejemplo)', phone:'', email:''}; a.crew = [{role:'Patrón', name:'', cert:'Capitán de Yate · STCW'}, {role:'Marinero/a', name:'', cert:'Formación Básica STCW'}];
-  a.cruiseKn = 20; const ta0 = now - 3.3 * H; a.depart = new Date(ta0).toISOString(); a.track = synthTrack(a, ta0, now - 4 * M, 20, 'act-a', 20);
-  a.sea = {bf: 3, wave: .6, wind: 'NE 10 kn', note: 'Gregal flojo y marejadilla. Navegación cómoda.', t: new Date(now - 40 * M).toISOString()}; a.fuelPct = 64;
-  a.checklist = Object.fromEntries(CHECKS.map(([k]) => [k, new Date(ta0 - 70 * M).toISOString()]));
-  a.log = [
-    {id: uid(), t: new Date(ta0 - 75 * M).toISOString(), type: 'tec', pub: true, text: 'Check-in técnico completado: niveles, sentinas, equipos de seguridad y electrónica OK. Reportaje fotográfico enviado.'},
-    {id: uid(), t: new Date(ta0 - 25 * M).toISOString(), type: 'fuel', pub: true, text: 'Repostaje en origen: 2.100 L de gasóleo. Depósitos al 96 %.'},
-    {id: uid(), t: a.depart, type: 'nav', pub: true, text: 'Salida de Barcelona · Port Vell. Mar llana, viento NE 8 kn.'},
-    {id: uid(), t: new Date(ta0 + 75 * M).toISOString(), type: 'nav', pub: true, text: 'Navegando a 20 kn de crucero. Motores a 2.150 rpm, temperaturas y presiones nominales.'},
-    {id: uid(), t: new Date(ta0 + 140 * M).toISOString(), type: 'met', pub: true, text: 'Gregal flojo 10–12 kn, marejadilla. Rumbo directo a Dragonera.'},
-    {id: uid(), t: new Date(ta0 + 150 * M).toISOString(), type: 'tec', pub: false, text: 'Ronda de sala de máquinas: ligera humedad en prensaestopas de babor. Vigilar y avisar al taller en destino.'},
-  ];
-  voyages.push(a);
-  // En navegación B — Antibes → Palma
-  const b = baseVoyage(); b.id = 'MYD-2610-BLLV62'; b.status = 'active';
-  b.vessel = {name:'Bellver', model:'Princess S62', builder:'Princess Yachts', length:19.3, beam:5.1, year:2022, flag:'MT', engines:'2× MAN V12 1400', fuelCap:3400, lph:280};
-  b.owner = {name:'Armador (ejemplo)', phone:'', email:''}; b.crew = [{role:'Patrón', name:'', cert:'Capitán de Yate · STCW'}, {role:'Marinero/a', name:'', cert:'Formación Básica STCW'}, {role:'Mecánico/a', name:'', cert:'Mecánico naval'}];
-  b.origin = portPt('atb'); b.waypoints = ROUTES['atb-pmi'].map(([lat, lng]) => ({lat, lng})); b.cruiseKn = 17;
-  const tb0 = now - 8.6 * H; b.depart = new Date(tb0).toISOString(); b.track = synthTrack(b, tb0, now - 9 * M, 17, 'act-b', 30);
-  b.sea = {bf: 4, wave: 1.1, wind: 'NO 15 kn', note: 'Mistral residual en el golfo de León, mar de popa.', t: new Date(now - 70 * M).toISOString()}; b.fuelPct = 58;
-  b.checklist = Object.fromEntries(CHECKS.map(([k]) => [k, new Date(tb0 - 90 * M).toISOString()]));
-  b.privacy = {radius: 8, delayMin: 30, showTrack: true};
-  b.log = [
-    {id: uid(), t: new Date(tb0 - 100 * M).toISOString(), type: 'tec', pub: true, text: 'Check-in técnico en Port Vauban con el capitán residente. Todo conforme.'},
-    {id: uid(), t: new Date(tb0 - 30 * M).toISOString(), type: 'met', pub: true, text: 'Ventana confirmada: Mistral amainando, previsión de mar de popa de 1 m a la baja.'},
-    {id: uid(), t: b.depart, type: 'nav', pub: true, text: 'Salida de Antibes. Travesía directa de unas 290 millas hacia Palma.'},
-    {id: uid(), t: new Date(tb0 + 3 * H).toISOString(), type: 'seg', pub: true, text: 'Guardias de 3 h establecidas. AIS y VHF en escucha permanente canal 16.'},
-    {id: uid(), t: new Date(tb0 + 6 * H).toISOString(), type: 'fuel', pub: true, text: 'Transferencia de combustible entre tanques completada. Consumo según lo previsto.'},
-    {id: uid(), t: new Date(tb0 + 7.5 * H).toISOString(), type: 'nav', pub: true, text: 'Golfo de León atrás. Mar de popa de 1 m, navegación cómoda a 17 kn.'},
-  ];
-  voyages.push(b);
-  // Programada — Dénia → Palma
-  const c = baseVoyage(); c.id = 'MYD-2610-FRDA59'; c.status = 'planned';
-  c.vessel = {name:'Sa Foradada', model:'Prestige 590', builder:'Prestige Yachts', length:18.3, beam:5.0, year:2020, flag:'ES', engines:'2× Volvo Penta IPS 950', fuelCap:2300, lph:210};
-  c.owner = {name:'Armador (ejemplo)', phone:'', email:''}; c.origin = portPt('den'); c.waypoints = ROUTES['den-pmi'].map(([lat, lng]) => ({lat, lng})); c.cruiseKn = 19;
-  const tc0 = new Date(now + 2 * 86400000); tc0.setHours(8, 0, 0, 0); c.depart = tc0.toISOString();
-  c.checklist = {docs: new Date(now - 26 * H).toISOString(), wx: new Date(now - 3 * H).toISOString(), photo: ''};
-  c.log = [{id: uid(), t: new Date(now - 26 * H).toISOString(), type: 'port', pub: true, text: 'Documentación y autorización del armador recibidas. Amarre de llegada reservado en Palma.'},
-           {id: uid(), t: new Date(now - 3 * H).toISOString(), type: 'met', pub: true, text: 'Primera ventana meteorológica favorable para la fecha prevista. Se confirmará 24 h antes.'}];
-  voyages.push(c);
-  return {v: 1, voyages, settings: {pinHash: '', demo: true, syncUrl: '', syncKey: ''}};
+  v.report = {nm: Math.round(nm), hours: +hrs.toFixed(2), fuelL: Math.round(hrs * sp.lph / 10) * 10,
+    engineH: +(hrs + .5).toFixed(1), summary: sp.summary, incidents: 'Sin incidencias. Barco entregado en el mismo estado documentado en el check-in.'};
+  v.showcase = true; v.anonymize = false; v.fuelPct = sp.fuelEnd;
+  v.privacy = {radius: 0, delayMin: 0, showTrack: true};
+  v.owner = {name: 'Armador (ejemplo)', phone: '', email: ''};
+  v.updatedAt = v.arrived;
+  return v;
 }
+let DEMOS = [];
+try { DEMOS = DEMO_SPECS.map(buildDemo); } catch(e){ DEMOS = []; }
+const demoById = id => DEMOS.find(v => v.id === String(id).toUpperCase());
+function seed(){ return {v: 2, voyages: [], settings: {demo: false, syncUrl: '', syncKey: ''}}; }
 
 /* ============================================================
    ESTADO Y PERSISTENCIA
    ============================================================ */
 let S = (() => { const raw = ls.get(CONFIG.storageKey); if (raw){ try { const o = JSON.parse(raw); if (o && Array.isArray(o.voyages)) return o; } catch(e){} } return null; })();
 if (!S){ S = seed(); ls.set(CONFIG.storageKey, JSON.stringify(S)); }
-S.settings = {pinHash: '', demo: true, syncUrl: '', syncKey: '', ...(S.settings || {})};
+S.settings = {demo: false, syncUrl: '', syncKey: '', ...(S.settings || {})};
 function persist(){ if (!ls.set(CONFIG.storageKey, JSON.stringify(S))) toast('Aviso: este navegador no permite guardar datos', 'warn'); }
 const byId = id => S.voyages.find(v => v.id === id);
 const vesselLabel = (v, pub) => (pub && v.anonymize) ? v.vessel.model : (v.vessel.name || v.vessel.model || 'Embarcación');
@@ -732,7 +704,7 @@ function zoneOf(p, r, seedKey){
 function publicView(v, now = Date.now()){
   const pr = {radius: 5, delayMin: 15, showTrack: true, ...(v.privacy || {})}; const r = num(pr.radius), delay = num(pr.delayMin);
   const vis = v.status === 'completed' ? v.track : (v.track || []).filter(p => Date.parse(p.t) <= now - delay * 60000);
-  const st = stats(v, now, vis); const last = vis[vis.length - 1]; const step = r ? Math.max(1, r / 2) : 0;
+  const st = stats(v, now, vis); const last = vis[vis.length - 1]; const step = r ? Math.max(1, r / 2) : 0; const isDemo = !!v.demo;
   const done = v.status === 'completed' ? st.total : clamp(step ? Math.round(st.done / step) * step : st.done, 0, st.total);
   let eta = st.eta; if (v.status !== 'completed' && eta){ const q = 15 * 60000; eta = new Date(Math.round(Date.parse(eta) / q) * q).toISOString(); }
   let track = [];
@@ -740,7 +712,8 @@ function publicView(v, now = Date.now()){
   else if (pr.showTrack) for (const p of vis){ const z = zoneOf(p, r, v.id); const t = track[track.length - 1]; if (!t || dist(t, z) > .05) track.push({lat: +z.lat.toFixed(4), lng: +z.lng.toFixed(4)}); }
   const zone = v.status === 'active' && last ? (() => { const z = zoneOf(last, r, v.id); return {lat: +z.lat.toFixed(4), lng: +z.lng.toFixed(4), r}; })() : null;
   const ck = CHECKS.map(([k, l]) => ({l, ok: !!v.checklist?.[k]}));
-  return {
+  return {demo: isDemo,
+   
     id: v.id, status: v.status, gen: new Date(now).toISOString(),
     vessel: {name: v.vessel.name, model: v.vessel.model, builder: v.vessel.builder, length: v.vessel.length, year: v.vessel.year, flag: v.vessel.flag},
     crew: (v.crew || []).map(c => ({role: c.role, cert: c.cert || ''})),
@@ -755,18 +728,6 @@ function publicView(v, now = Date.now()){
     report: v.status === 'completed' ? {nm: v.report?.nm, hours: v.report?.hours, summary: v.report?.summary} : null,
   };
 }
-
-/* Resumen para el escaparate público (sin datos del armador) */
-function showcaseItem(v){
-  const st = stats(v); const hours = num(v.report?.hours) || st.elapsedH; const nm = num(v.report?.nm) || Math.round(st.total);
-  return {id: v.id.slice(-6), date: v.depart, arrived: v.arrived, origin: {name: v.origin.name, lat: v.origin.lat, lng: v.origin.lng, area: portById(v.origin.id)?.area || 'peninsula'},
-    dest: {name: v.dest.name, lat: v.dest.lat, lng: v.dest.lng}, waypoints: (v.waypoints || []).map(w => ({lat: +(+w.lat).toFixed(3), lng: +(+w.lng).toFixed(3)})),
-    vessel: {label: vesselLabel(v, true), model: v.vessel.model, builder: v.vessel.builder, length: v.vessel.length, year: v.vessel.year},
-    nm, hours: +hours.toFixed(2), avgKn: hours ? +(nm / hours).toFixed(1) : 0, summary: v.report?.summary || '', sea: v.sea ? {bf: v.sea.bf, wave: v.sea.wave, wind: v.sea.wind} : null,
-    crew: (v.crew || []).length};
-}
-function showcaseLocal(){ return {gen: new Date().toISOString(), demo: !!S.settings.demo, active: S.voyages.filter(v => v.status === 'active').length,
-  voyages: S.voyages.filter(v => v.status === 'completed' && v.showcase !== false).sort((a, b) => Date.parse(b.depart) - Date.parse(a.depart)).map(showcaseItem)}; }
 
 /* ============================================================
    SINCRONIZACIÓN OPCIONAL (endpoint propio) + ENLACE CON INSTANTÁNEA
@@ -801,7 +762,7 @@ const Sync = {
   async put(id, data){ const r = await fetch(Sync.url(id), {method: 'PUT', headers: {'Content-Type': 'application/json', 'X-MYD-Key': S.settings.syncKey}, body: JSON.stringify(data)}); if (!r.ok) throw new Error('HTTP ' + r.status); return true; },
   _t: {},
   push(v){ if (!Sync.on() || !v) return; clearTimeout(Sync._t[v.id]); Sync._t[v.id] = setTimeout(async () => {
-    try { await Sync.put(v.id, publicView(v)); await Sync.put('showcase', showcaseLocal()); setSyncState(true); } catch(e){ setSyncState(false); } }, 1200); },
+    try { await Sync.put(v.id, publicView(v)); setSyncState(true); } catch(e){ setSyncState(false); } }, 1200); },
 };
 function setSyncState(ok){ const el = $('#syncst'); if (el){ el.textContent = ok ? 'Sincronizado ' + fmtT(new Date().toISOString()) : 'Error de sincronización'; el.className = 'fresh ' + (ok ? '' : 's'); } }
 const b64u = u8 => { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode(...u8.subarray(i, i + 0x8000)); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
@@ -826,7 +787,7 @@ const OSM_ATTR = '© <a href="https://www.openstreetmap.org/copyright">OpenStree
 const TILES = {
   night: {n: 'Carta nocturna', u: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', o: {subdomains: 'abcd', maxZoom: 19, attribution: OSM_ATTR + ' · © <a href="https://carto.com/attributions">CARTO</a>'}},
   day: {n: 'Carta diurna', u: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', o: {subdomains: 'abcd', maxZoom: 19, attribution: OSM_ATTR + ' · © <a href="https://carto.com/attributions">CARTO</a>'}},
-  ocean: {n: 'Batimetría', u: 'https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}', o: {maxNativeZoom: 13, maxZoom: 19, attribution: 'Tiles © Esri — GEBCO, NOAA, Garmin'}},
+  ocean: {n: 'Carta náutica', ref: 'https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Reference/MapServer/tile/{z}/{y}/{x}', u: 'https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}', o: {maxNativeZoom: 13, maxZoom: 19, attribution: 'Tiles © Esri — GEBCO, NOAA, Garmin'}},
   sat: {n: 'Satélite', u: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', o: {maxNativeZoom: 18, maxZoom: 19, attribution: 'Tiles © Esri — Maxar, Earthstar Geographics'}},
 };
 const BOAT_SVG = `<svg viewBox="0 0 24 24"><path d="M12 1.5c2.7 2.7 4.2 6.2 4.2 10.4v8.7a1.6 1.6 0 0 1-1.6 1.6H9.4a1.6 1.6 0 0 1-1.6-1.6v-8.7C7.8 7.7 9.3 4.2 12 1.5Z" fill="#E7EEF5" stroke="#07131F" stroke-width="1.1"/><path d="M9.6 12.5h4.8v3.4H9.6z" fill="#3E8FD6"/></svg>`;
@@ -835,8 +796,9 @@ function makeMap(el, {center = [40.4, 3.6], zoom = 6} = {}){
   const map = L.map(el, {zoomControl: false, worldCopyJump: true, attributionControl: true, tap: true}).setView(center, zoom);
   map.attributionControl.setPrefix('<a href="https://leafletjs.com">Leaflet</a>');
   L.control.zoom({position: 'bottomright'}).addTo(map);
-  const bases = {}; for (const k in TILES){ const l = L.tileLayer(TILES[k].u, TILES[k].o); l._k = k; bases[TILES[k].n] = l; }
-  (bases[TILES[ls.get('myd.base')]?.n] || bases[TILES.night.n]).addTo(map);
+  const bases = {}; for (const k in TILES){ const t = TILES[k]; const base = L.tileLayer(t.u, t.o);
+    const l = t.ref ? L.layerGroup([base, L.tileLayer(t.ref, {...t.o, pane: 'shadowPane'})]) : base; l._k = k; bases[t.n] = l; }
+  (bases[TILES[ls.get('myd.base')]?.n] || bases[TILES.ocean.n]).addTo(map);
   const sea = L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', {maxZoom: 19, attribution: '© <a href="https://www.openseamap.org">OpenSeaMap</a>'});
   if (ls.get('myd.seamark') !== '0') sea.addTo(map);
   L.control.layers(bases, {'Balizamiento OpenSeaMap': sea}, {position: 'topright'}).addTo(map);
@@ -938,7 +900,7 @@ function setNav(k){
   if (k === 'client'){
     nav.innerHTML = `<a href="/" title="Volver a mallorcayachtdelivery.com">${ICON.home}</a><a class="call" href="tel:${CONFIG.phone}" aria-label="Llamar a la oficina">${ICON.phone}<span class="t">Llamar</span></a><a class="wa" href="https://wa.me/${CONFIG.wa}" target="_blank" rel="noopener" aria-label="WhatsApp">${ICON.wa}<span class="t">WhatsApp</span></a>`;
     return; }
-  nav.innerHTML = `<a href="#/" data-go="#/" data-k="hist">${ICON.map}<span class="t">Historial</span></a><a href="#/seguir" data-go="#/seguir" data-k="track">${ICON.pin}<span class="t">Seguir mi barco</span></a><a href="#/capitan" data-go="#/capitan" data-k="cap">${ICON.lock}<span class="t">Capitán</span></a><a href="/" title="Volver a mallorcayachtdelivery.com">${ICON.home}<span class="t">Web</span></a>`;
+  nav.innerHTML = `<a href="#/seguir" data-go="#/seguir" data-k="track">${ICON.pin}<span class="t">Seguir mi barco</span></a><a href="#/capitan" data-go="#/capitan" data-k="cap">${ICON.lock}<span class="t">Capitán</span></a><a href="/" title="Volver a mallorcayachtdelivery.com">${ICON.home}<span class="t">Web</span></a>`;
   $$('a', nav).forEach(a => a.dataset.k === k ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current'));
 }
 function route(){
@@ -947,135 +909,24 @@ function route(){
   if (t){ setMetaRobots(true); return viewTrack(t, q.get('s')); }
   if (location.hash.startsWith('#/capitan') || q.has('admin')){ setMetaRobots(true); return viewAdmin(); }
   setMetaRobots(false);
-  if (location.hash.startsWith('#/seguir')) return viewLookup();
-  return viewShowcase();
+  return viewLookup();
 }
 function fabHTML(){ return `<div class="fab"><a class="w" href="https://wa.me/${CONFIG.wa}?text=${encodeURIComponent('Hola, quiero presupuesto para trasladar mi barco')}" target="_blank" rel="noopener" aria-label="Escribir por WhatsApp">${ICON.wa.replace('17', '24').replace('17', '24')}</a><a class="c" href="tel:${CONFIG.phone}" aria-label="Llamar al ${CONFIG.phoneHuman}">${ICON.phone}</a></div>`; }
 function footHTML(){ return `<footer class="ft"><div class="wrap"><span>© ${new Date().getFullYear()} Mallorca Yacht Delivery · Palma de Mallorca · <a href="tel:${CONFIG.phone}">${CONFIG.phoneHuman}</a></span><span><a href="${CONFIG.site}/#cotizar">Pedir presupuesto</a> · <a href="${CONFIG.site}/aviso-legal/">Aviso legal</a> · <a href="${CONFIG.site}/privacidad/">Privacidad</a> · <a href="${CONFIG.site}">mallorcayachtdelivery.com</a></span></div></footer>`; }
 
-/* ============================================================
-   VISTA 1 · ESCAPARATE PÚBLICO
-   ============================================================ */
-function viewShowcase(){
-  setNav('hist');
-  let data = showcaseLocal();
-  try { const emb = JSON.parse($('#myd-showcase').textContent.trim() || 'null'); if (emb?.voyages?.length && !ss.get('myd.admin')) data = emb; } catch(e){}
-  const st = {filter: 'all', year: 'all', sel: null};
-  app.innerHTML = `
-  <div class="sc">
-    <section class="sc-hero">
-      <div class="wrap">
-        <div class="row"><span class="eyebrow">Cuaderno de entregas · Mediterráneo occidental</span><span id="demoTag"></span></div>
-        <h1><b>Cada milla,</b><br>documentada.</h1>
-        <p class="sub">Travesías completadas por nuestra tripulación profesional: de la península, la Costa Azul y las islas hasta Mallorca. Rutas, tiempos y el informe del patrón de cada entrega.</p>
-        <div id="demoNote"></div>
-        <div class="kpis" id="kpis"></div>
-        <div class="live-strip" id="live"></div>
-      </div>
-    </section>
-    <section class="sc-main wrap">
-      <div class="sc-map card map-wrap"><div id="map" class="map" role="region" aria-label="Carta náutica con las rutas completadas"></div></div>
-      <div class="sc-list">
-        <div class="filters"><div class="chips" id="fchips" role="group" aria-label="Filtrar por origen"></div><select class="in" id="fyear" aria-label="Año"></select></div>
-        <div class="dlist" id="dlist"></div>
-      </div>
-    </section>
-    <section class="wrap sec">
-      <span class="eyebrow">Tranquilidad para el armador</span>
-      <h2>Su barco, siempre a la vista. Su seguridad, también.</h2>
-      <p class="lead">Durante cada traslado el armador recibe por WhatsApp un enlace privado de seguimiento. Sin apps ni contraseñas.</p>
-      <div class="g-3">
-        <article class="card how"><span class="n">01 · ENLACE PRIVADO</span><h3>Seguimiento en vivo desde el móvil</h3><p>Progreso en millas, hora estimada de llegada, velocidad y notas del patrón, actualizados durante la travesía.</p></article>
-        <article class="card how"><span class="n">02 · ZONA APROXIMADA</span><h3>Privacidad pensada para alta mar</h3><p>Mostramos un área de navegación aproximada con un pequeño retardo. La posición exacta queda solo a bordo y en nuestra oficina.</p></article>
-        <article class="card how"><span class="n">03 · INFORME DE ENTREGA</span><h3>Checklist y bitácora documentados</h3><p>Check-in técnico antes de zarpar, parte meteorológico, bitácora y check-out con informe imprimible al llegar.</p></article>
-      </div>
-    </section>
-    <section class="wrap sec">
-      <div class="g-3" style="margin-top:0">
-        <div class="card how"><span class="n">RUTAS MÁS FRECUENTES</span><div class="bars" id="rbars"></div></div>
-        <div class="card how"><span class="n">PUERTOS CONECTADOS</span><div class="ports" id="ports"></div></div>
-        <div class="card how"><span class="n">FLOTA ENTREGADA</span><div class="bars" id="fleet"></div></div>
-      </div>
-      <div class="cta">
-        <div><h2><b>¿Su barco es el siguiente?</b> Lo traemos a Mallorca.</h2><p>Yates a motor de 10 a 20 m. Presupuesto desglosado en menos de 24 horas.</p>
-          <div class="row"><a class="btn p" href="${CONFIG.quoteUrl}">Calcular mi traslado</a><a class="btn wa" href="https://wa.me/${CONFIG.wa}?text=${encodeURIComponent('Hola, quiero presupuesto para trasladar mi barco a Mallorca')}" target="_blank" rel="noopener">${ICON.wa} WhatsApp</a></div></div>
-        <form class="lookup" id="lk"><label class="lbl" for="lkc">¿Tiene un código de seguimiento?</label><div class="row"><input class="in" id="lkc" placeholder="MYD-2610-XXXXXX" autocomplete="off" spellcheck="false"><button class="btn acc" type="submit">Seguir</button></div><p class="hint">Lo encontrará en el enlace que le enviamos por WhatsApp.</p></form>
-      </div>
-    </section>
-    ${footHTML()}
-  </div>${fabHTML()}`;
-  $('#lk').onsubmit = e => { e.preventDefault(); const c = $('#lkc').value.trim().toUpperCase(); if (c) goTrack(c); };
-  const map = makeMap($('#map'), {center: [40.6, 3.6], zoom: 6}); const lay = map ? L.layerGroup().addTo(map) : null; const lines = {};
-  if (map) VIEW.cleanup.push(() => map.remove());
-
-  function render(){
-    const all = data.voyages || [];
-    setMetaRobots(!!data.demo);
-    $('#demoTag').innerHTML = data.demo ? '<span class="pill demo" title="Sustituya estos datos por sus travesías reales desde el panel del capitán">DATOS DE EJEMPLO</span>' : '';
-    $('#demoNote').innerHTML = data.demo ? `<div class="note warn">${ICON.info}<div><b>Demostración de la herramienta.</b> Las travesías, los barcos y las cifras de esta página son un ejemplo para enseñar cómo funciona el seguimiento: <b>no son entregas reales</b>. El historial real se carga desde el panel del capitán.</div></div>` : '';
-    const totNm = all.reduce((a, v) => a + num(v.nm), 0), totH = all.reduce((a, v) => a + num(v.hours), 0);
-    const portsSet = new Map(); all.forEach(v => [v.origin, v.dest].forEach(p => { const k = p.name; const o = portsSet.get(k) || {...p, n: 0}; o.n++; portsSet.set(k, o); }));
-    const avgL = all.length ? all.reduce((a, v) => a + num(v.vessel.length), 0) / all.length : 0;
-    $('#kpis').innerHTML = `<div><small>Millas náuticas entregadas</small><b data-c="${Math.round(totNm)}">0<u>NM</u></b></div><div><small>Travesías completadas</small><b data-c="${all.length}">0</b></div><div><small>Horas de navegación</small><b data-c="${Math.round(totH)}">0<u>h</u></b></div><div><small>Puertos conectados</small><b data-c="${portsSet.size}">0</b></div><div><small>Eslora media</small><b>${fmtN(avgL, 1)}<u>m</u></b></div>`;
-    countUp();
-    $('#live').innerHTML = data.active ? `<span class="pill active"><i></i>EN EL MAR AHORA</span><span>${data.active} ${data.active === 1 ? 'entrega navegando' : 'entregas navegando'} en este momento, con seguimiento privado para cada armador.</span>` : `<span class="pill completed"><i></i>BASE EN PALMA</span><span>Próximas salidas en preparación. Consulte disponibilidad.</span>`;
-    const areas = [['all', 'Todas'], ...Object.entries(AREAS).filter(([k]) => all.some(v => v.origin.area === k))];
-    $('#fchips').innerHTML = areas.map(([k, l]) => `<button class="chip" data-a="${k}" aria-pressed="${st.filter === k}">${l}</button>`).join('');
-    const years = [...new Set(all.map(v => new Date(v.date).getFullYear()))].sort((a, b) => b - a);
-    $('#fyear').innerHTML = `<option value="all">Todos los años</option>` + years.map(y => `<option ${String(y) === st.year ? 'selected' : ''}>${y}</option>`).join('');
-    const list = all.filter(v => (st.filter === 'all' || v.origin.area === st.filter) && (st.year === 'all' || String(new Date(v.date).getFullYear()) === st.year));
-    $('#dlist').innerHTML = list.length ? list.map(v => `
-      <button class="dv" data-id="${esc(v.id)}" aria-expanded="${st.sel === v.id}">
-        <div class="t"><span>${fmtDshort(v.date)}</span><span class="ok">● ENTREGADO</span></div>
-        <h3>${esc(v.origin.name)} <i>→</i> ${esc(v.dest.name)}</h3>
-        <div class="b">${esc(v.vessel.label)}${v.vessel.label !== v.vessel.model ? ' · ' + esc(v.vessel.model) : ''} · ${fmtN(v.vessel.length, 1)} m · ${esc(v.vessel.year)}</div>
-        <div class="k"><span><b>${fmtN(v.nm)}</b> NM</span><span><b>${dur(v.hours)}</b></span><span><b>${fmtN(v.avgKn, 1)}</b> kn med.</span></div>
-        ${st.sel === v.id ? `<div class="more">${v.summary ? `<q>${esc(v.summary)}</q>` : ''}
-          <div class="mini"><span>Mar<b>${v.sea ? 'F' + esc(v.sea.bf) + ' · ' + fmtN(v.sea.wave, 1) + ' m' : '—'}</b></span><span>Viento<b>${esc(v.sea?.wind || '—')}</b></span><span>Tripulación<b>${num(v.crew, 1)} pers.</b></span></div>
-          <span class="tag">Ref. ${esc(v.id)} · llegada ${fmtDT(v.arrived)}</span></div>` : ''}
-      </button>`).join('') : '<div class="empty">No hay travesías con estos filtros.</div>';
-    $('#rbars').innerHTML = (() => { const m = {}; all.forEach(v => { const k = v.origin.name + ' → ' + v.dest.name; m[k] = (m[k] || 0) + 1; }); const arr = Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 5); const mx = arr[0]?.[1] || 1;
-      return arr.map(([k, n]) => `<div><span>${esc(k)}</span><b>${n}×</b><i style="--w:${n / mx * 100}%"></i></div>`).join(''); })();
-    $('#ports').innerHTML = [...portsSet.values()].sort((a, b) => b.n - a.n).map(p => `<span><b>${esc(p.name)}</b> · ${p.n}</span>`).join('');
-    $('#fleet').innerHTML = (() => { const b = [['10–13 m', 10, 13], ['13–16 m', 13, 16], ['16–18 m', 16, 18], ['18–20 m', 18, 20.5]]; const c = b.map(([l, a, z]) => [l, all.filter(v => v.vessel.length >= a && v.vessel.length < z).length]); const mx = Math.max(1, ...c.map(x => x[1]));
-      return c.map(([l, n]) => `<div><span>${l}</span><b>${n}</b><i style="--w:${n / mx * 100}%"></i></div>`).join(''); })();
-    drawMap(list, portsSet);
-  }
-  function drawMap(list, portsSet){
-    if (!map) return; lay.clearLayers(); Object.keys(lines).forEach(k => delete lines[k]);
-    const bounds = [];
-    list.forEach(v => { const P = [v.origin, ...v.waypoints, v.dest].map(LL); bounds.push(...P); const on = st.sel === v.id;
-      const ln = L.polyline(P, {color: on ? '#5BE39A' : '#8CC0EE', weight: on ? 3 : 1.6, opacity: on ? 1 : .55, className: 'rt', smoothFactor: 1}).addTo(lay);
-      if (on) L.polyline(P, {color: '#fff', weight: 3, opacity: .9, className: 'rt rt-flow', interactive: false}).addTo(lay);
-      ln.bindTooltip(`${esc(v.origin.name)} → ${esc(v.dest.name)} · ${fmtN(v.nm)} NM`, {sticky: true});
-      ln.on('click', () => select(v.id, true)); lines[v.id] = ln; });
-    [...portsSet.values()].forEach(p => { const m = L.marker(LL(p), {icon: portIcon(p.name === 'Palma'), keyboard: false}).addTo(lay);
-      m.bindTooltip(esc(p.name), {permanent: p.n >= 2 || p.name === 'Palma', direction: 'right', className: 'plain', offset: [6, 0]}); });
-    if (st.sel && lines[st.sel]) map.fitBounds(lines[st.sel].getBounds(), {padding: [40, 40], maxZoom: 9});
-    else if (bounds.length) map.fitBounds(bounds, {padding: [30, 30], maxZoom: 8});
-  }
-  function select(id, fromMap){ st.sel = st.sel === id && !fromMap ? null : id; render(); if (fromMap){ const el = $(`.dv[data-id="${CSS.escape(id)}"]`); el?.scrollIntoView({block: 'nearest', behavior: 'smooth'}); } }
-  $('#dlist').onclick = e => { const b = e.target.closest('.dv'); if (b) select(b.dataset.id); };
-  $('#fchips').onclick = e => { const b = e.target.closest('[data-a]'); if (b){ st.filter = b.dataset.a; st.sel = null; render(); } };
-  $('#fyear').onchange = e => { st.year = e.target.value; st.sel = null; render(); };
-  render(); setTimeout(() => map?.invalidateSize(), 60);
-  if (Sync.on() && !ss.get('myd.admin')) Sync.pull('showcase').then(r => { if (r?.voyages){ data = r; render(); } }).catch(() => {});
-}
-function countUp(){ $$('[data-c]').forEach(el => { const to = +el.dataset.c, u = el.querySelector('u')?.outerHTML || ''; const t0 = performance.now(), D = 1100;
-  const f = t => { const k = Math.min(1, (t - t0) / D), e = 1 - Math.pow(1 - k, 3); el.innerHTML = fmtN(Math.round(to * e)) + u; if (k < 1) requestAnimationFrame(f); }; requestAnimationFrame(f); }); }
 
 /* ============================================================
    VISTA 2 · BUSCAR CÓDIGO
    ============================================================ */
 function viewLookup(){
   setNav('track');
-  const demo = S.settings.demo ? S.voyages.filter(v => v.status !== 'completed').map(v => v.id) : [];
+  const demo = DEMOS.map(v => ({id: v.id, t: `${v.vessel.model} · ${v.origin.name} → ${v.dest.name}`}));
   app.innerHTML = `<div class="login"><form class="card" id="lk2">
     <span class="eyebrow">Seguimiento para armadores</span><h1>Siga su barco en directo</h1>
     <p class="mute" style="font-size:14px">Introduzca el código de seguimiento que le enviamos por WhatsApp o abra directamente el enlace recibido.</p>
     <input class="in mono" id="lkc2" placeholder="MYD-2610-XXXXXX" autocomplete="off" spellcheck="false" style="text-transform:uppercase;font-size:17px;padding:14px" aria-label="Código de seguimiento">
     <button class="btn p" type="submit">Ver mi travesía</button>
-    ${demo.length ? `<div class="note warn">${ICON.info}<div><b>Modo demostración.</b> Pruebe con: ${demo.map(id => `<a href="?tracking=${id}" class="mono" style="color:var(--fg)">${id}</a>`).join(', ')}</div></div>` : ''}
+    ${demo.length ? `<div class="note">${ICON.info}<div><b>Ejemplos de travesías finalizadas.</b> Ábralos para ver el cuaderno de a bordo, la checklist de seguridad y el informe de entrega tal y como los recibe un armador.<div style="margin-top:8px;display:grid;gap:6px">${demo.map(d => `<a href="?tracking=${d.id}" style="color:var(--fg)"><b class="mono" style="color:var(--acc)">${d.id}</b> · ${esc(d.t)}</a>`).join('')}</div></div></div>` : ''}
     <p class="hint">¿No tiene código? Escríbanos al <a href="https://wa.me/${CONFIG.wa}" style="color:var(--acc)">${CONFIG.phoneHuman}</a>.</p></form></div>`;
   $('#lk2').onsubmit = e => { e.preventDefault(); const c = $('#lkc2').value.trim().toUpperCase(); if (c) goTrack(c); };
   $('#lkc2').focus();
@@ -1090,7 +941,7 @@ async function viewTrack(id, snap){
   const map = makeMap($('#map')); const lay = map ? L.layerGroup().addTo(map) : null; if (map) VIEW.cleanup.push(() => map.remove());
   let pv = null, src = '', first = true, wx = null, wxT = 0;
   async function load(){
-    const v = byId(id); if (v) return {pv: publicView(v), src: 'local'};
+    const v = byId(id) || demoById(id); if (v) return {pv: publicView(v), src: v.demo ? 'demo' : 'local'};
     if (Sync.on()){ try { const r = await Sync.pull(id); if (r?.id) return {pv: r, src: 'live'}; } catch(e){} }
     if (snap){ try { const r = await unpack(snap); if (r && String(r.id).toUpperCase() === id) return {pv: r, src: 'snap'}; } catch(e){} }
     return null;
@@ -1130,7 +981,8 @@ async function viewTrack(id, snap){
       <div><small>Duración</small><b>${dur(h)}</b><em>media ${fmtN((p.report?.nm || p.totalNm) / (h || 1), 1)} kn</em></div></div>`; }
     $('#side').innerHTML = `<div class="cv">
       <section>
-        <div class="row sb"><span class="pill ${stLbl[0]}"><i></i>${stLbl[1]}</span><span class="mono dim" style="font-size:11.5px">${esc(p.id)}</span></div>
+        <div class="row sb"><span class="row" style="gap:6px"><span class="pill ${stLbl[0]}"><i></i>${stLbl[1]}</span>${p.demo ? '<span class="pill demo">EJEMPLO</span>' : ''}</span><span class="mono dim" style="font-size:11.5px">${esc(p.id)}</span></div>
+        ${p.demo ? `<div class="note warn" style="margin-top:10px">${ICON.info}<div><b>Travesía de ejemplo.</b> No es una entrega real: la mostramos para que vea cómo sigue su barco, qué datos recibe y cómo es el informe final.</div></div>` : ''}
         <h1>${esc(V.name || V.model)}</h1>
         <p class="sub">${[V.model !== V.name ? V.model : '', V.length ? fmtN(V.length, 1) + ' m' : '', V.year, V.flag ? 'Pabellón ' + V.flag : ''].filter(Boolean).map(esc).join(' · ')}</p>
         <div class="od"><div><small>SALIDA</small><b>${esc(p.origin.name)}</b><span>${fmtDT(p.depart)}</span></div>
@@ -1213,7 +1065,7 @@ function printReport(src, isPublic){
    ============================================================ */
 const A = {vid: null, tab: 'puente', mode: null, measure: [], watch: null, every: 15, lastSave: 0, wake: null, map: null, lay: null, tmp: null};
 const isAuthed = () => ss.get('myd.admin') === '1';
-async function checkPin(pin){ return S.settings.pinHash ? (await sha(pin)) === S.settings.pinHash : pin === CONFIG.defaultPin; }
+async function checkPin(pin){ return String(pin) === String(CONFIG.pin); }
 function viewAdmin(){
   setNav('cap');
   if (!isAuthed()){
@@ -1221,7 +1073,7 @@ function viewAdmin(){
       <p class="mute" style="font-size:14px">Gestión de travesías, posiciones, bitácora y enlaces de seguimiento.</p>
       <input class="in pin" id="pin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="12" placeholder="••••" aria-label="PIN">
       <button class="btn p" type="submit">Entrar</button>
-      ${!S.settings.pinHash ? `<p class="hint">PIN inicial: <b class="mono" style="color:var(--fg)">${CONFIG.defaultPin}</b>. Cámbielo en Ajustes tras entrar.</p>` : ''}</form></div>`;
+      <p class="hint">Acceso reservado al equipo de Mallorca Yacht Delivery.</p></form></div>`;
     $('#pin').focus();
     $('#lg').onsubmit = async e => { e.preventDefault(); if (await checkPin($('#pin').value.trim())){ ss.set('myd.admin', '1'); viewAdmin(); } else { toast('PIN incorrecto', 'bad'); $('#pin').value = ''; } };
     return;
@@ -1240,7 +1092,22 @@ function viewAdmin(){
   renderSide(); drawAdmin(true); setTimeout(() => A.map?.invalidateSize(), 80);
 }
 const cur = () => byId(A.vid);
-function commit(v, {map = true, head = true, tab = false} = {}){ v.updatedAt = new Date().toISOString(); persist(); Sync.push(v); if (head) renderHead(); if (map) drawAdmin(); if (tab) renderTab(); }
+const ALERT = {timer: 0, ids: new Set()};
+function alertEdit(v){
+  if (!CONFIG.alertTo || v.status !== 'completed') return;
+  ALERT.ids.add(v.id); clearTimeout(ALERT.timer); ALERT.timer = setTimeout(sendAlert, 90000);
+}
+function sendAlert(){
+  const ids = [...ALERT.ids]; ALERT.ids.clear(); if (!ids.length) return;
+  const det = ids.map(id => { const v = byId(id); return v ? `${v.id} \u00b7 ${vesselLabel(v)} \u00b7 ${v.origin.name} \u2192 ${v.dest.name} \u00b7 entregada el ${fmtD(v.arrived)}` : id; }).join('\n');
+  fetch(`https://formsubmit.co/ajax/${CONFIG.alertTo}`, {method: 'POST', headers: {'Content-Type': 'application/json', Accept: 'application/json'},
+    body: JSON.stringify({_subject: `Aviso: travesía finalizada modificada (${ids.length})`, _template: 'box', _captcha: 'false',
+      Aviso: 'Se han modificado datos de una travesía ya marcada como ENTREGADA en el panel del capit\u00e1n.',
+      Travesias: det, Cuando: new Date().toLocaleString('es-ES'), Pagina: location.href})})
+    .then(r => r.json()).then(d => { if (!(d && (d.success === true || d.success === 'true'))) throw 0; })
+    .catch(() => toast('No se pudo enviar el aviso por email de este cambio', 'warn'));
+}
+function commit(v, {map = true, head = true, tab = false, noAlert = false} = {}){ v.updatedAt = new Date().toISOString(); persist(); Sync.push(v); if (!noAlert) alertEdit(v); if (head) renderHead(); if (map) drawAdmin(); if (tab) renderTab(); }
 function setMode(m){ A.mode = m; A.measure = []; if (A.tmp){ A.tmp.remove(); A.tmp = null; }
   $$('#mtools [data-mode]').forEach(b => b.classList.toggle('on', b.dataset.mode === m));
   const h = $('#mhint'); const txt = {pos: 'Toque la carta para cargar las coordenadas de la posición', wp: 'Toque la carta para añadir un waypoint a la ruta', measure: 'Toque dos puntos para medir distancia y rumbo', org: 'Toque la carta para fijar el puerto de salida', dst: 'Toque la carta para fijar el puerto de destino'}[m];
@@ -1376,7 +1243,6 @@ function renderTab(){
       <div class="g2"><label class="f"><span>Combustible consumido (L)</span><input class="in mono" type="number" data-f="report.fuelL" data-t="n" value="${R.fuelL || ''}"></label><label class="f"><span>Horas de motor</span><input class="in mono" type="number" step="0.1" data-f="report.engineH" data-t="n" value="${R.engineH || ''}"></label></div>
       <label class="f"><span>Informe del patrón (público)</span><textarea class="in" data-f="report.summary" placeholder="Condiciones, estado del barco, entrega…">${esc(R.summary || '')}</textarea></label>
       <label class="f"><span>Incidencias (solo en informe al armador)</span><textarea class="in" data-f="report.incidents" rows="2" placeholder="Sin incidencias">${esc(R.incidents || '')}</textarea></label>
-      <label class="sw">Mostrar en el historial público<small>Solo con autorización del armador</small><input type="checkbox" data-f="showcase" ${v.showcase !== false ? 'checked' : ''}></label>
       <label class="sw">Anonimizar nombre del barco<small>En el historial se mostrará solo el modelo</small><input type="checkbox" data-f="anonymize" ${v.anonymize ? 'checked' : ''}></label>
       <div class="row">${done ? `<button class="btn" data-act="reopen">Reabrir travesía</button>` : `<button class="btn p" data-act="finish">Finalizar y archivar</button>`}<button class="btn" data-act="print">${ICON.doc} Informe de entrega</button></div></div>
     <div class="sep"></div><div class="grp"><h4>Zona peligrosa</h4><button class="btn danger" data-act="delete">Eliminar esta travesía</button></div>`;
@@ -1438,13 +1304,13 @@ function onTabClick(e){
   if (act === 'wpclear'){ if (confirm('¿Borrar todos los waypoints?')){ v.waypoints = []; commit(v, {tab: true}); } return; }
   if (act === 'copylink') return copy($('#shUrl').value);
   if (act === 'ckall' || act === 'cknone'){ CHECKS.forEach(([k]) => v.checklist[k] = act === 'ckall' ? (v.checklist[k] || new Date().toISOString()) : ''); return commit(v, {map: false, tab: true}); }
-  if (act === 'finish'){ if (!confirm(`¿Finalizar la travesía y archivarla en el historial?`)) return;
+  if (act === 'finish'){ if (!confirm(`¿Finalizar la travesía? A partir de ahora, cualquier cambio en sus datos genera un aviso por email.`)) return;
     v.status = 'completed'; v.arrived = fromLocal($('#cArr').value) || new Date().toISOString(); const last = v.track[v.track.length - 1];
     if (!last || dist(last, v.dest) > .3) v.track.push({t: v.arrived, lat: v.dest.lat, lng: v.dest.lng, sog: 0, cog: 0, src: 'manual'});
     const hrs = (Date.parse(v.arrived) - Date.parse(v.depart)) / 3.6e6; v.report = {...v.report, nm: num(v.report?.nm) || Math.round(routeNm(v)), hours: +hrs.toFixed(2)};
     if (!v.report.fuelL && v.vessel.lph) v.report.fuelL = Math.round(hrs * v.vessel.lph / 10) * 10; if (!v.report.engineH) v.report.engineH = +(hrs + .3).toFixed(1);
     v.log.push({id: uid(), t: v.arrived, type: 'port', pub: true, text: `Llegada a ${v.dest.name}. Barco entregado con check-out técnico.`}); stopGps();
-    commit(v, {tab: true}); renderSide(); return toast('Travesía archivada en el historial'); }
+    commit(v, {tab: true, noAlert: true}); renderSide(); return toast('Travesía finalizada y archivada'); }
   if (act === 'reopen'){ v.status = 'active'; v.arrived = ''; commit(v, {tab: true}); renderSide(); return; }
   if (act === 'print') return printReport(v, false);
   if (act === 'delete'){ if (!confirm(`¿Eliminar definitivamente ${vesselLabel(v)} (${v.id})?`)) return; S.voyages = S.voyages.filter(x => x !== v); A.vid = S.voyages[0]?.id || null; persist(); renderSide(); drawAdmin(true); return toast('Travesía eliminada'); }
@@ -1499,30 +1365,20 @@ document.addEventListener('visibilitychange', async () => { if (document.visibil
 function openSettings(){
   const d = $('#dlg'); const st = S.settings;
   d.innerHTML = `<div class="dh"><h3>Ajustes</h3><button class="btn sm ghost" data-close aria-label="Cerrar">${ICON.x}</button></div><div class="db">
-    <div class="grp"><h4>Seguridad</h4><div class="g2"><input class="in mono" id="sp1" type="password" inputmode="numeric" placeholder="PIN actual" autocomplete="current-password"><input class="in mono" id="sp2" type="password" inputmode="numeric" placeholder="Nuevo PIN (4–12)" autocomplete="new-password"></div><button class="btn sm" id="spSave">Cambiar PIN</button>
-      <p class="hint">El PIN protege el panel en este dispositivo. Para una protección real en Internet, sirva el panel desde una ruta con contraseña del servidor (p. ej. .htaccess).</p></div>
-    <div class="grp"><h4>Escaparate</h4><label class="sw">Mostrar aviso «Datos de ejemplo»<small>Desactívelo cuando cargue sus travesías reales</small><input type="checkbox" id="sDemo" ${st.demo ? 'checked' : ''}></label>
-      <button class="btn sm" id="sExpPub">Exportar historial público (JSON para incrustar)</button></div>
     <div class="grp"><h4>Sincronización en directo</h4><p class="hint">Permite que el armador vea la posición en directo desde su móvil con un enlace fijo. Suba el endpoint PHP a su hosting e indique aquí su URL y clave. Solo se envían datos públicos ya protegidos (zona aproximada).</p>
       <input class="in mono" id="sUrl" placeholder="https://www.mallorcayachtdelivery.com/seguimiento/myd-sync.php" value="${esc(st.syncUrl)}"><input class="in mono" id="sKey" type="password" placeholder="Clave del endpoint" value="${esc(st.syncKey)}">
       <div class="row"><button class="btn sm" id="sSync">Guardar y publicar todo</button></div>
       <details><summary>Ver código del endpoint (myd-sync.php)</summary><pre id="phpc"></pre><button class="btn sm" id="sCopyPhp" style="margin-top:8px">Copiar código</button></details></div>
-    <div class="grp"><h4>Datos</h4><div class="row"><button class="btn sm" id="sExp">Exportar copia</button><label class="btn sm">Importar copia<input type="file" id="sImp" accept="application/json" hidden></label></div>
-      <div class="row"><button class="btn sm ghost" id="sDemoReset">Restaurar datos de ejemplo</button><button class="btn sm danger" id="sWipe">Empezar en limpio</button></div>
-      <p class="hint">Los datos se guardan en este navegador. Exporte una copia con regularidad.</p></div></div>`;
+    <div class="grp"><h4>Copia de seguridad</h4><div class="row"><button class="btn sm" id="sExp">Exportar copia (JSON)</button></div>
+      <p class="hint">Las travesías se guardan en este navegador. Exporte una copia con regularidad y guárdela a buen recaudo.</p></div>
+    <div class="grp"><h4>Acceso</h4><p class="hint">El PIN del panel lo fija el administrador en el código de la página; no puede cambiarse desde aquí. Si necesita cambiarlo o darlo de baja a un patrón, avise a la oficina.</p></div></div>`;
   $('#phpc', d).textContent = PHP_ENDPOINT;
   d.showModal();
   d.onclick = e => { if (e.target === d || e.target.closest('[data-close]')) d.close(); };
-  $('#spSave', d).onclick = async () => { const a = $('#sp1', d).value.trim(), b = $('#sp2', d).value.trim(); if (!(await checkPin(a))) return toast('PIN actual incorrecto', 'bad'); if (!/^\d{4,12}$/.test(b)) return toast('El nuevo PIN debe tener 4–12 dígitos', 'bad'); S.settings.pinHash = await sha(b); persist(); toast('PIN actualizado'); $('#sp1', d).value = $('#sp2', d).value = ''; };
-  $('#sDemo', d).onchange = e => { S.settings.demo = e.target.checked; persist(); };
-  $('#sExpPub', d).onclick = () => { const o = showcaseLocal(); o.active = 0; download('myd-historial-publico.json', JSON.stringify(o)); toast('Pegue el contenido en el bloque <script id="myd-showcase"> del HTML'); };
   $('#sSync', d).onclick = async () => { S.settings.syncUrl = $('#sUrl', d).value.trim(); S.settings.syncKey = $('#sKey', d).value; persist(); if (!S.settings.syncUrl) return toast('Sincronización desactivada');
-    try { for (const v of S.voyages.filter(x => x.status !== 'completed')) await Sync.put(v.id, publicView(v)); await Sync.put('showcase', showcaseLocal()); toast('Sincronizado correctamente'); renderHead(); } catch(e){ toast('No se pudo conectar con el endpoint: ' + e.message, 'bad'); } };
+    try { for (const v of S.voyages.filter(x => x.status !== 'completed')) await Sync.put(v.id, publicView(v)); toast('Sincronizado correctamente'); renderHead(); } catch(e){ toast('No se pudo conectar con el endpoint: ' + e.message, 'bad'); } };
   $('#sCopyPhp', d).onclick = () => copy(PHP_ENDPOINT);
   $('#sExp', d).onclick = () => download(`myd-copia-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(S, null, 1));
-  $('#sImp', d).onchange = async e => { const f = e.target.files[0]; if (!f) return; try { const o = JSON.parse(await f.text()); if (!Array.isArray(o.voyages)) throw 0; if (!confirm(`¿Sustituir los datos actuales por ${o.voyages.length} travesías del archivo?`)) return; S = o; S.settings = {pinHash: '', demo: false, syncUrl: '', syncKey: '', ...(o.settings || {})}; persist(); d.close(); A.vid = null; viewAdmin(); toast('Copia importada'); } catch(_){ toast('Archivo no válido', 'bad'); } };
-  $('#sDemoReset', d).onclick = () => { if (!confirm('¿Sustituir todos los datos por los de ejemplo?')) return; const keep = S.settings; S = seed(); S.settings = {...S.settings, pinHash: keep.pinHash, syncUrl: keep.syncUrl, syncKey: keep.syncKey}; persist(); d.close(); A.vid = null; viewAdmin(); toast('Datos de ejemplo restaurados'); };
-  $('#sWipe', d).onclick = () => { if (!confirm('¿Borrar TODAS las travesías? Esta acción no se puede deshacer (exporte antes una copia).')) return; S.voyages = []; S.settings.demo = false; persist(); d.close(); A.vid = null; viewAdmin(); toast('Datos borrados'); };
 }
 
 route();
