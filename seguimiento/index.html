@@ -796,8 +796,9 @@ function makeMap(el, {center = [40.4, 3.6], zoom = 6} = {}){
   const map = L.map(el, {zoomControl: false, worldCopyJump: true, attributionControl: true, tap: true}).setView(center, zoom);
   map.attributionControl.setPrefix('<a href="https://leafletjs.com">Leaflet</a>');
   L.control.zoom({position: 'bottomright'}).addTo(map);
+  const lp = map.createPane('lbl'); lp.style.zIndex = 250; lp.style.pointerEvents = 'none';
   const bases = {}; for (const k in TILES){ const t = TILES[k]; const base = L.tileLayer(t.u, t.o);
-    const l = t.ref ? L.layerGroup([base, L.tileLayer(t.ref, {...t.o, pane: 'shadowPane'})]) : base; l._k = k; bases[t.n] = l; }
+    const l = t.ref ? L.layerGroup([base, L.tileLayer(t.ref, {...t.o, pane: 'lbl'})]) : base; l._k = k; bases[t.n] = l; }
   (bases[TILES[ls.get('myd.base')]?.n] || bases[TILES.ocean.n]).addTo(map);
   const sea = L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', {maxZoom: 19, attribution: '© <a href="https://www.openseamap.org">OpenSeaMap</a>'});
   if (ls.get('myd.seamark') !== '0') sea.addTo(map);
