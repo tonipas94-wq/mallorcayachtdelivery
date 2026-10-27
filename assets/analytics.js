@@ -3,7 +3,7 @@
    - Para activarlo, pegue su ID de medición (G-XXXXXXXXXX) en GA_ID. Mientras esté vacío, no hay banner ni analítica.
    - Eventos medidos: clic en WhatsApp, teléfono y email, pasos del cotizador y solicitud enviada (generate_lead). */
 (() => {
-  const GA_ID = '';
+  const GA_ID = 'G-PPW19E3DSK';
   const KEY = 'myd.consent.v1';
   const EN = (document.documentElement.lang || 'es').startsWith('en');
   const T = EN
