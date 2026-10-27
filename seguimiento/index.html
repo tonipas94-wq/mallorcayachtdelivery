@@ -1,0 +1,1532 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Seguimiento de travesías · Mallorca Yacht Delivery</title>
+<meta name="description" content="Historial de entregas de yates a motor hacia Mallorca y seguimiento en vivo para armadores. Mallorca Yacht Delivery: patrón profesional, parte meteorológico y tracking en cada travesía.">
+<meta name="theme-color" content="#07131F">
+<meta name="color-scheme" content="dark">
+<link rel="canonical" href="https://www.mallorcayachtdelivery.com/seguimiento/">
+<!-- Mientras el escaparate muestre datos de ejemplo la página no se indexa.
+     Cuando cargue sus travesías reales: quite esta etiqueta y desactive
+     «Datos de ejemplo» en Panel del capitán → Ajustes → Escaparate. -->
+<meta name="robots" content="noindex,follow">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="es_ES">
+<meta property="og:site_name" content="Mallorca Yacht Delivery">
+<meta property="og:title" content="Seguimiento de travesías · Mallorca Yacht Delivery">
+<meta property="og:description" content="Historial de entregas y seguimiento en vivo para armadores: progreso en millas, hora estimada de llegada, parte meteorológico y bitácora del patrón.">
+<meta property="og:url" content="https://www.mallorcayachtdelivery.com/seguimiento/">
+<meta property="og:image" content="https://www.mallorcayachtdelivery.com/assets/hero/yate-aereo-1600.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<!--
+  MALLORCA YACHT DELIVERY · TRACKER (archivo único)
+  ─────────────────────────────────────────────────
+  Vistas:
+    ./                     → Escaparate público (historial de entregas)
+    ./#/seguir             → Introducir código de seguimiento
+    ./?tracking=MYD-XXXX   → Seguimiento en vivo para el armador
+    ./#/capitan            → Panel del capitán (PIN por defecto: 1852 — cámbielo en Ajustes)
+    ?embed=1               → Oculta la cabecera para incrustar en un <iframe>
+
+  Datos: se guardan en localStorage de este navegador. Para que el armador vea la posición
+  en directo desde SU móvil, active la sincronización (Ajustes → Sincronización) con el
+  endpoint PHP incluido (Ajustes → "Ver código del endpoint"). Sin endpoint, el enlace
+  incluye una instantánea cifrada en la URL con la última posición publicada.
+-->
+<style>
+:root{
+  --bg:#050E18;--bg2:#07131F;--panel:#0A1726;--panel2:#0D1D30;--line:#16293E;--line2:#22405F;
+  --fg:#E7EEF5;--mute:#8FA2B5;--dim:#5E738B;--acc:#8CC0EE;--acc2:#3E8FD6;--ok:#5BE39A;--warn:#F2B84B;--bad:#F07A7A;
+  --wa:#25D366;--navy:#0B2340;
+  --f:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;--m:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+  --hh:58px;--r:12px;color-scheme:dark;
+}
+@font-face{font-family:'Playfair Display';src:url(/assets/playfair-display-latin.woff2) format('woff2');
+  font-weight:400 900;font-style:normal;font-display:swap}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.55 var(--f);-webkit-font-smoothing:antialiased;min-height:100dvh;overflow-x:hidden}
+a{color:inherit}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px;border-radius:6px}
+h1,h2,h3,h4{margin:0;line-height:1.12;letter-spacing:-.02em;text-wrap:balance}
+p{margin:0}
+.mono{font-family:var(--m);letter-spacing:.04em}
+.dim{color:var(--dim)}.mute{color:var(--mute)}
+.eyebrow{font:500 11px/1.3 var(--m);letter-spacing:.18em;text-transform:uppercase;color:var(--acc)}
+.wrap{max-width:1320px;margin:0 auto;padding-inline:max(16px,env(safe-area-inset-left))}
+@media(min-width:900px){.wrap{padding-inline:32px}}
+
+/* ---------- Cabecera ---------- */
+.top{position:sticky;top:0;z-index:1000;height:calc(var(--hh) + env(safe-area-inset-top));padding-top:env(safe-area-inset-top);background:rgba(7,19,31,.86);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.top .in{height:var(--hh);display:flex;align-items:center;justify-content:space-between;gap:12px;padding-inline:max(16px,env(safe-area-inset-left))}
+@media(min-width:900px){.top .in{padding-inline:24px}}
+.brand{display:flex;align-items:center;gap:11px;text-decoration:none;min-width:0}
+.brand img{height:30px;width:auto;flex:none;display:block}
+.brand .lg{font:700 16.5px/1 'Playfair Display',Georgia,'Times New Roman',serif;letter-spacing:1px;
+  text-transform:uppercase;color:#D4F1F2;white-space:nowrap}
+.brand em{font:500 10px var(--m);letter-spacing:.14em;color:var(--acc);border:1px solid var(--line2);border-radius:20px;padding:3px 8px;font-style:normal}
+.nav{display:flex;gap:4px;align-items:center}
+.nav a,.nav button{display:inline-flex;align-items:center;gap:7px;text-decoration:none;font-size:13.5px;color:var(--mute);padding:8px 12px;border-radius:30px;border:1px solid transparent;background:none;cursor:pointer;white-space:nowrap}
+.nav a:hover{color:var(--fg)}
+.nav a[aria-current=page]{color:var(--fg);background:var(--panel2);border-color:var(--line2)}
+.nav .wa{background:var(--wa);color:#05230F;font-weight:600}
+.nav .call{border-color:var(--line2);color:var(--fg)}
+@media(max-width:720px){.brand img{height:26px}.brand .lg{font-size:13px;letter-spacing:.5px}.brand em{display:none}.nav a .t{display:none}.nav a{padding:9px}}
+@media(max-width:420px){.brand .lg{font-size:0}.brand .lg::after{content:"MYD";font-size:15px}}
+body.embed .top{display:none}
+body.embed{--hh:0px}
+
+/* ---------- Componentes ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 16px;border-radius:10px;border:1px solid var(--line2);background:var(--panel2);color:var(--fg);font-weight:500;font-size:14px;cursor:pointer;text-decoration:none;transition:background .15s,border-color .15s,transform .1s;white-space:nowrap}
+.btn:hover{border-color:var(--acc);background:#11263D}
+.btn:active{transform:translateY(1px)}
+.btn.p{background:var(--fg);color:#07131F;border-color:var(--fg);font-weight:600}
+.btn.p:hover{background:#fff}
+.btn.acc{background:var(--acc2);border-color:var(--acc2);color:#fff;font-weight:600}
+.btn.wa{background:var(--wa);border-color:var(--wa);color:#05230F;font-weight:600}
+.btn.ghost{background:transparent}
+.btn.danger{border-color:#5A2A2A;color:var(--bad);background:transparent}
+.btn.sm{padding:7px 11px;font-size:12.5px;border-radius:8px}
+.btn.on{border-color:var(--ok);color:var(--ok);background:rgba(91,227,154,.08)}
+.btn svg{flex:none}
+.btn[disabled]{opacity:.45;pointer-events:none}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row.sb{justify-content:space-between}
+.card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:var(--r)}
+.pill{display:inline-flex;align-items:center;gap:7px;font:600 10.5px/1 var(--m);letter-spacing:.14em;padding:6px 10px;border-radius:30px;border:1px solid var(--line2);color:var(--mute);white-space:nowrap}
+.pill i{width:7px;height:7px;border-radius:50%;background:currentColor}
+.pill.active{color:var(--ok);border-color:rgba(91,227,154,.35);background:rgba(91,227,154,.06)}
+.pill.active i{animation:blink 1.6s infinite}
+.pill.planned{color:var(--warn);border-color:rgba(242,184,75,.35)}
+.pill.completed{color:var(--acc);border-color:rgba(140,192,238,.35)}
+.pill.demo{color:var(--warn);border-style:dashed}
+@keyframes blink{50%{opacity:.25}}
+.tag{font:500 10.5px var(--m);letter-spacing:.1em;color:var(--dim);text-transform:uppercase}
+
+/* Instrumentos (estilo pantalla multifunción) */
+.inst{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.inst>div{background:linear-gradient(180deg,#0B1A2B,#081421);padding:12px 14px 13px;min-width:0}
+.inst small{display:block;font:500 9.5px/1.2 var(--m);letter-spacing:.16em;color:var(--dim);text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.inst b{display:block;margin-top:6px;font:500 25px/1 var(--m);letter-spacing:-.02em;color:var(--fg);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.inst b u{text-decoration:none;font-size:12px;color:var(--mute);margin-left:4px;letter-spacing:.04em}
+.inst em{display:block;font-style:normal;font-size:11.5px;color:var(--mute);margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.inst.sm b{font-size:18px}
+.inst .hl b{color:var(--ok)}
+@media(max-width:420px){.inst b{font-size:21px}.inst>div{padding:11px 11px 12px}}
+
+/* Formularios */
+.f{display:grid;gap:6px;min-width:0}
+.f>span,.lbl{font:500 10.5px/1.2 var(--m);letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.in,select.in,textarea.in{width:100%;background:#07111D;border:1px solid var(--line2);border-radius:9px;padding:10px 12px;font-size:14.5px;color:var(--fg);min-width:0}
+textarea.in{resize:vertical;min-height:84px;line-height:1.45}
+.in:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px rgba(140,192,238,.15)}
+select.in{appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--mute) 50%),linear-gradient(-45deg,transparent 50%,var(--mute) 50%);background-position:calc(100% - 17px) 52%,calc(100% - 12px) 52%;background-size:5px 5px;background-repeat:no-repeat;padding-right:30px}
+.in.mono{font-family:var(--m);font-size:13.5px}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.g4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media(max-width:420px){.g4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+input[type=range]{width:100%;accent-color:var(--acc)}
+.sw{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;cursor:pointer;font-size:14px}
+.sw input{appearance:none;-webkit-appearance:none;flex:none;width:40px;height:23px;border-radius:20px;background:var(--line2);position:relative;cursor:pointer;transition:background .2s;margin:0}
+.sw input::after{content:"";position:absolute;top:3px;left:3px;width:17px;height:17px;border-radius:50%;background:#fff;transition:transform .2s}
+.sw input:checked{background:var(--ok)}
+.sw input:checked::after{transform:translateX(17px)}
+.sw small{display:block;color:var(--dim);font-size:12px}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;border:1px solid var(--line2);border-radius:10px;overflow:hidden}
+.seg button{border:0;background:transparent;padding:10px 6px;font-size:12.5px;color:var(--mute);cursor:pointer;border-right:1px solid var(--line2)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed=true]{background:var(--fg);color:#07131F;font-weight:600}
+.hint{font-size:12.5px;color:var(--dim);line-height:1.5}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--line2);background:transparent;border-radius:30px;padding:7px 13px;font-size:12.5px;color:var(--mute);cursor:pointer;white-space:nowrap}
+.chip[aria-pressed=true]{background:var(--fg);color:#07131F;border-color:var(--fg);font-weight:600}
+.chip:hover{border-color:var(--acc)}
+
+/* ---------- Mapa ---------- */
+.map{width:100%;height:100%;background:#06111C}
+.leaflet-container{background:#06111C;font-family:var(--f)}
+.leaflet-bar{border:1px solid var(--line2)!important;border-radius:10px!important;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.35)!important}
+.leaflet-bar a{background:rgba(10,23,38,.92)!important;color:var(--fg)!important;border-bottom-color:var(--line2)!important;width:34px!important;height:34px!important;line-height:34px!important}
+.leaflet-bar a:hover{background:#12263C!important}
+.leaflet-control-layers{background:rgba(10,23,38,.94)!important;color:var(--fg)!important;border:1px solid var(--line2)!important;border-radius:10px!important;box-shadow:0 8px 24px rgba(0,0,0,.35)!important}
+.leaflet-control-layers-toggle{width:36px!important;height:36px!important;background-image:none!important;position:relative}
+.leaflet-control-layers-toggle::after{content:"";position:absolute;inset:9px;background:no-repeat center/contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23E7EEF5' stroke-width='1.8' stroke-linejoin='round'%3E%3Cpath d='M12 3 2 8l10 5 10-5-10-5Z'/%3E%3Cpath d='m2 13 10 5 10-5'/%3E%3C/svg%3E")}
+.leaflet-control-layers-expanded{padding:10px 12px!important;font-size:13px}
+.leaflet-control-layers-separator{border-top-color:var(--line2)!important}
+.leaflet-control-layers label{margin:3px 0}
+.leaflet-control-attribution{background:rgba(5,14,24,.72)!important;color:var(--dim)!important;font-size:10px!important;border-radius:6px 0 0 0}
+.leaflet-control-attribution a{color:var(--mute)!important}
+.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#0B1A2B;color:var(--fg);border:1px solid var(--line2);box-shadow:0 12px 30px rgba(0,0,0,.45)}
+.leaflet-popup-content{margin:12px 14px;font-size:13px;line-height:1.45}
+.leaflet-popup-close-button{color:var(--mute)!important}
+.leaflet-tooltip{background:rgba(7,19,31,.92);color:var(--fg);border:1px solid var(--line2);border-radius:6px;font:500 11px var(--m);letter-spacing:.06em;padding:4px 7px;box-shadow:none}
+.leaflet-tooltip:before{display:none}
+.leaflet-tooltip.plain{background:transparent;border:0;color:var(--fg);text-shadow:0 1px 3px #000,0 0 8px #000;padding:0 0 0 4px}
+.nm-scale{display:flex;align-items:center;gap:8px;background:rgba(7,19,31,.8);border:1px solid var(--line2);border-radius:7px;padding:5px 9px;font:500 10.5px var(--m);color:var(--mute);margin-bottom:6px!important}
+.nm-scale i{display:block;height:6px;border:1.5px solid var(--acc);border-top:0}
+.coord{background:rgba(7,19,31,.8);border:1px solid var(--line2);border-radius:7px;padding:5px 9px;font:500 11px var(--m);color:var(--fg);letter-spacing:.04em;margin-bottom:4px!important;white-space:pre}
+@media(max-width:600px){.coord{font-size:10px}}
+.boat-ic .pulse{position:absolute;inset:0;border-radius:50%;border:1.5px solid var(--ok);animation:pulse 2.4s ease-out infinite}
+.boat-ic svg{position:absolute;inset:9px;width:26px;height:26px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.6));transition:transform .4s}
+.boat-ic.zone .pulse{border-color:var(--acc)}
+@keyframes pulse{0%{transform:scale(.35);opacity:1}100%{transform:scale(1.25);opacity:0}}
+.port-ic i{display:block;width:12px;height:12px;border-radius:50%;background:#07131F;border:2px solid var(--acc);box-shadow:0 0 0 3px rgba(140,192,238,.18)}
+.port-ic.main i{width:16px;height:16px;margin:-2px;border-color:#fff;background:var(--acc2)}
+.wp-ic{display:grid;place-items:center}
+.wp-ic b{display:grid;place-items:center;width:20px;height:20px;transform:rotate(45deg);background:#07131F;border:1.5px solid var(--warn);font:600 9px var(--m);color:var(--warn)}
+.wp-ic b span{transform:rotate(-45deg)}
+.rt{stroke-linecap:round;stroke-linejoin:round}
+.rt-flow{stroke-dasharray:2 12;animation:flow 1.2s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-14}}
+.nomap{display:grid;place-items:center;height:100%;padding:24px;text-align:center;color:var(--mute);font-size:14px}
+.map-wrap{position:relative;min-height:0}
+.mtools{position:absolute;z-index:500;top:12px;left:12px;display:flex;flex-direction:column;gap:6px}
+.mtools .btn{background:rgba(10,23,38,.94);box-shadow:0 8px 24px rgba(0,0,0,.35);justify-content:flex-start}
+.mtools .btn.on{background:rgba(20,48,36,.95)}
+.mhint{position:absolute;z-index:500;left:50%;bottom:58px;transform:translateX(-50%);background:rgba(242,184,75,.95);color:#1A1203;font-weight:600;font-size:13px;padding:8px 14px;border-radius:30px;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,.4);max-width:calc(100% - 24px);overflow:hidden;text-overflow:ellipsis}
+@media(max-width:980px){.mtools{flex-direction:row;flex-wrap:wrap;right:58px}.mtools .btn{padding:6px 9px;font-size:12px}.mhint{white-space:normal;text-align:center;bottom:64px}}
+.mfloat{position:absolute;z-index:500;top:12px;left:12px;display:flex;gap:6px;flex-wrap:wrap}
+.mfloat .btn{background:rgba(10,23,38,.94);box-shadow:0 8px 24px rgba(0,0,0,.35)}
+
+/* ---------- Escaparate ---------- */
+.sc-hero{position:relative;isolation:isolate;padding-block:clamp(48px,7vw,96px) 34px;overflow:hidden}
+.sc-hero::before{content:"";position:absolute;inset:0;z-index:-2;
+  background:#06223A url(/assets/hero/yate-aereo-1600.jpg) center/cover no-repeat}
+.sc-hero::after{content:"";position:absolute;inset:0;z-index:-1;background:
+  linear-gradient(90deg,rgba(5,14,24,.93) 0%,rgba(5,14,24,.74) 38%,rgba(5,14,24,.30) 68%),
+  linear-gradient(0deg,var(--bg) 1%,rgba(5,14,24,.10) 52%)}
+.sc-hero .eyebrow{color:rgba(255,255,255,.80)}
+.sc-hero h1{margin-top:18px;font-weight:600;font-size:clamp(36px,5.8vw,76px);letter-spacing:-.045em;line-height:.98;color:#fff}
+.sc-hero h1 b{font-weight:600}
+.sc-hero .sub{margin-top:20px;max-width:40em;color:rgba(255,255,255,.82);font-size:clamp(15px,1.6vw,18px)}
+.sc-hero .note{margin-top:22px;max-width:62em;background:rgba(242,184,75,.12);border-color:rgba(242,184,75,.4)}
+@media(max-width:700px){.sc-hero::before{background-image:url(/assets/hero/yate-aereo-movil.jpg);background-position:58% 12%}
+  .sc-hero::after{background:linear-gradient(0deg,var(--bg) 14%,rgba(5,14,24,.78) 52%,rgba(5,14,24,.42) 100%)}
+  .sc-hero{padding-block:min(46vw,230px) 28px}}
+.kpis{margin-top:32px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.kpis>div{background:linear-gradient(180deg,#0B1A2B,#081421);padding:18px 18px 16px}
+.kpis small{font:500 10px var(--m);letter-spacing:.16em;color:var(--dim);text-transform:uppercase}
+.kpis b{display:block;margin-top:8px;font:400 clamp(26px,3.2vw,40px)/1 var(--m);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.kpis b u{text-decoration:none;font-size:13px;color:var(--mute);margin-left:5px;letter-spacing:.04em}
+@media(max-width:900px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.kpis>div:first-child{grid-column:1/-1}}
+.live-strip{margin-top:16px;display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;font-size:13.5px;color:var(--mute)}
+.live-strip .pill{font-size:10px}
+.sc-main{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:16px;align-items:stretch}
+.sc-map{position:relative;height:min(680px,78vh);overflow:hidden}
+.sc-list{display:flex;flex-direction:column;min-height:0;height:min(680px,78vh)}
+.sc-list .filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between;padding-bottom:12px}
+.sc-list .filters select{width:auto;padding:7px 30px 7px 12px;font-size:12.5px;border-radius:30px}
+.dlist{overflow:auto;display:grid;gap:8px;align-content:start;padding-right:4px;scrollbar-width:thin;scrollbar-color:var(--line2) transparent}
+@media(max-width:980px){.sc-main{grid-template-columns:1fr}.sc-map{height:56vh;min-height:340px}.sc-list{height:auto}.dlist{overflow:visible}}
+.dv{display:block;width:100%;text-align:left;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:12px;padding:14px 16px;cursor:pointer;transition:border-color .2s,background .2s}
+.dv:hover{border-color:var(--line2)}
+.dv[aria-expanded=true]{border-color:var(--acc);background:linear-gradient(180deg,#10243A,#0B1A2B)}
+.dv .t{display:flex;justify-content:space-between;align-items:center;gap:10px;font:500 10.5px var(--m);letter-spacing:.12em;color:var(--dim)}
+.dv .t .ok{color:var(--ok)}
+.dv h3{margin-top:8px;font-size:18px;font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.dv h3 i{font-style:normal;color:var(--acc);font-weight:400}
+.dv .b{margin-top:3px;font-size:13.5px;color:var(--mute)}
+.dv .k{display:flex;gap:16px;margin-top:10px;font:500 12px var(--m);color:var(--mute);flex-wrap:wrap}
+.dv .k b{color:var(--fg);font-weight:500;font-size:14px}
+.dv .more{margin-top:12px;padding-top:12px;border-top:1px solid var(--line);font-size:13.5px;color:var(--mute);display:grid;gap:10px}
+.dv .more q{display:block;quotes:none;color:var(--fg);border-left:2px solid var(--acc);padding-left:12px}
+.dv .more .mini{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;font-size:12px}
+.dv .more .mini span{background:#07111D;border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.dv .more .mini b{display:block;font:500 13.5px var(--m);color:var(--fg)}
+.sec{padding-block:clamp(48px,7vw,88px) 0}
+.sec h2{font-size:clamp(24px,3vw,36px);font-weight:600;margin-top:12px}
+.sec .lead{color:var(--mute);margin-top:10px;max-width:44em}
+.g-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:28px}
+@media(max-width:900px){.g-3{grid-template-columns:1fr}}
+.how{padding:22px}
+.how .n{font:500 12px var(--m);color:var(--acc);letter-spacing:.1em}
+.how h3{font-size:18px;margin-top:12px;font-weight:600}
+.how p{color:var(--mute);font-size:14.5px;margin-top:8px}
+.bars{display:grid;gap:10px;margin-top:16px}
+.bars div{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;font-size:14px;align-items:center}
+.bars i{grid-column:1/-1;height:6px;border-radius:4px;background:var(--line);overflow:hidden;position:relative}
+.bars i::after{content:"";position:absolute;inset:0;width:var(--w);background:linear-gradient(90deg,var(--acc2),var(--acc));border-radius:4px}
+.bars b{font:500 12.5px var(--m);color:var(--mute)}
+.ports{display:flex;flex-wrap:wrap;gap:6px;margin-top:16px}
+.ports span{font:500 12px var(--m);padding:6px 10px;border:1px solid var(--line2);border-radius:30px;color:var(--mute)}
+.ports span b{color:var(--fg);font-weight:500}
+.cta{margin-top:clamp(48px,7vw,88px);padding:clamp(24px,4vw,44px);display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:32px;align-items:center;background:linear-gradient(135deg,#0B2340,#0A1726 70%);border:1px solid var(--line2);border-radius:18px}
+.cta h2{font-weight:300;font-size:clamp(26px,3.4vw,42px);letter-spacing:-.03em}.cta h2 b{font-weight:600}
+.cta p{color:var(--mute);margin-top:12px}
+.cta .row{margin-top:20px}
+.lookup{display:grid;gap:10px;padding:20px;background:rgba(5,14,24,.5);border:1px solid var(--line2);border-radius:14px}
+.lookup .row{margin:0;flex-wrap:nowrap}
+.lookup .in{flex:1;text-transform:uppercase;font-family:var(--m)}
+@media(max-width:860px){.cta{grid-template-columns:1fr}}
+.ft{margin-top:56px;border-top:1px solid var(--line);padding-block:24px calc(24px + env(safe-area-inset-bottom));font-size:12.5px;color:var(--dim)}
+.ft .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px}
+.ft a{text-decoration:none}.ft a:hover{color:var(--fg)}
+
+/* ---------- Vista cliente ---------- */
+.split{display:grid;grid-template-columns:minmax(0,1fr) 440px;height:calc(100dvh - var(--hh) - env(safe-area-inset-top))}
+.split .map-wrap{height:100%}
+.split .side{overflow:auto;border-left:1px solid var(--line);background:var(--bg2);scrollbar-width:thin;scrollbar-color:var(--line2) transparent}
+@media(max-width:980px){
+  .split{display:block;height:auto}
+  .split .map-wrap{height:52vh;min-height:320px;position:sticky;top:calc(var(--hh) + env(safe-area-inset-top));z-index:1}
+  .split .side{position:relative;z-index:2;border-left:0;border-top:1px solid var(--line);border-radius:18px 18px 0 0;margin-top:-18px;box-shadow:0 -12px 30px rgba(0,0,0,.4)}
+  .split .side::before{content:"";display:block;width:42px;height:4px;border-radius:4px;background:var(--line2);margin:10px auto 0}
+}
+.cv{padding:20px 20px calc(28px + env(safe-area-inset-bottom));display:grid;gap:16px}
+.cv h1{font-size:30px;font-weight:600;margin-top:12px}
+.cv .sub{color:var(--mute);font-size:14px;margin-top:4px}
+.od{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:10px;align-items:center;margin-top:16px;padding:14px;border:1px solid var(--line);border-radius:12px;background:#07111D}
+.od small{display:block;font:500 9.5px var(--m);letter-spacing:.16em;color:var(--dim)}
+.od b{display:block;font-size:17px;font-weight:600;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.od span{display:block;font:500 12px var(--m);color:var(--mute);margin-top:2px}
+.od .r{text-align:right}
+.prog{padding:16px}
+.prog .row b{font:500 13px var(--m)}
+.track{position:relative;height:30px;margin-top:12px}
+.track::before{content:"";position:absolute;left:0;right:0;top:14px;height:2px;background:repeating-linear-gradient(90deg,var(--line2) 0 6px,transparent 6px 11px)}
+.track .done{position:absolute;left:0;top:13px;height:4px;border-radius:4px;background:linear-gradient(90deg,var(--acc2),var(--ok));width:var(--p)}
+.track .ship{position:absolute;top:2px;left:var(--p);transform:translateX(-50%);width:26px;height:26px;display:grid;place-items:center;border-radius:50%;background:#07131F;border:1.5px solid var(--ok);box-shadow:0 0 0 4px rgba(91,227,154,.12)}
+.track .a,.track .z{position:absolute;top:10px;width:10px;height:10px;border-radius:50%;background:#07131F;border:2px solid var(--acc)}
+.track .a{left:-2px}.track .z{right:-2px}
+.prog .ends{display:flex;justify-content:space-between;font:500 11px var(--m);color:var(--dim);margin-top:6px}
+.note{display:flex;gap:12px;padding:13px 14px;border-radius:12px;background:rgba(140,192,238,.06);border:1px solid rgba(140,192,238,.18);font-size:13px;color:var(--mute);line-height:1.5}
+.note svg{flex:none;color:var(--acc);margin-top:1px}
+.note b{color:var(--fg)}
+.note.warn{background:rgba(242,184,75,.07);border-color:rgba(242,184,75,.25)}
+.note.warn svg{color:var(--warn)}
+.blk{padding:16px}
+.blk>h3{font:600 10.5px var(--m);letter-spacing:.16em;color:var(--mute);text-transform:uppercase;display:flex;justify-content:space-between;gap:8px;align-items:center}
+.blk>h3 span{font-weight:500;color:var(--dim);letter-spacing:.06em;text-transform:none}
+.wx{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}
+.wx>div{min-width:0}
+.wx small{font:500 9.5px var(--m);letter-spacing:.14em;color:var(--dim)}
+.wx b{display:flex;align-items:baseline;gap:4px;font:500 24px/1.1 var(--m);margin-top:4px}
+.wx b u{text-decoration:none;font-size:11.5px;color:var(--mute)}
+.wx em{display:flex;align-items:center;gap:5px;font-style:normal;font-size:12px;color:var(--mute);margin-top:3px}
+.wbars{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:3px;align-items:end;height:64px;margin-top:16px;padding-top:6px;border-top:1px solid var(--line)}
+.wbars div{display:grid;justify-items:center;align-content:end;gap:3px;height:100%;font:500 9px var(--m);color:var(--dim)}
+.wbars i{display:block;width:100%;max-width:16px;border-radius:3px 3px 0 0;background:linear-gradient(180deg,var(--acc),var(--acc2))}
+.wbars i.hi{background:linear-gradient(180deg,var(--warn),#B8862E)}
+.cap{margin-top:12px;font-size:13px;color:var(--mute);padding:10px 12px;border-radius:10px;background:#07111D;border:1px solid var(--line)}
+.cap b{color:var(--fg)}
+.tl{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:0}
+.tl li{position:relative;padding:0 0 16px 22px}
+.tl li::before{content:"";position:absolute;left:4px;top:7px;width:7px;height:7px;border-radius:50%;background:var(--acc)}
+.tl li::after{content:"";position:absolute;left:7px;top:18px;bottom:2px;width:1px;background:var(--line2)}
+.tl li:last-child{padding-bottom:0}
+.tl li:last-child::after{display:none}
+.tl li.tec::before{background:var(--warn)}.tl li.fuel::before{background:#C58CF0}.tl li.met::before{background:#6FD3E8}.tl li.port::before{background:var(--ok)}.tl li.sgr::before{background:var(--bad)}
+.tl time{display:block;font:500 11px var(--m);color:var(--dim);letter-spacing:.04em}
+.tl p{font-size:14px;margin-top:2px}
+.tl .priv{font:500 9.5px var(--m);letter-spacing:.1em;color:var(--warn);border:1px solid rgba(242,184,75,.35);border-radius:4px;padding:1px 5px;margin-left:6px}
+.ck{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:7px}
+.ck li{display:flex;gap:10px;font-size:13.5px;align-items:flex-start;color:var(--mute)}
+.ck li svg{flex:none;margin-top:2px}
+.ck li.y{color:var(--fg)}.ck li.y svg{color:var(--ok)}.ck li.n svg{color:var(--dim)}
+.meter{height:6px;border-radius:6px;background:var(--line);overflow:hidden;margin-top:10px}
+.meter i{display:block;height:100%;background:var(--ok);width:var(--p);border-radius:6px}
+.crew{display:grid;gap:8px;margin-top:12px}
+.crew div{display:flex;justify-content:space-between;gap:12px;font-size:14px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.crew div:last-child{border:0;padding:0}
+.crew span{color:var(--mute);font-size:12.5px;text-align:right}
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.acts .btn{width:100%}
+.acts .wide{grid-column:1/-1}
+.cv-foot{text-align:center;font-size:12px;color:var(--dim);padding-top:8px}
+.cv-foot a{color:var(--mute)}
+.fresh{display:inline-flex;align-items:center;gap:6px;font:500 11.5px var(--m);color:var(--mute)}
+.fresh i{width:7px;height:7px;border-radius:50%;background:var(--ok)}
+.fresh.w i{background:var(--warn)}.fresh.s i{background:var(--bad)}
+
+/* ---------- Panel capitán ---------- */
+.adm{display:grid;grid-template-columns:460px minmax(0,1fr);height:calc(100dvh - var(--hh) - env(safe-area-inset-top))}
+.adm .side{overflow:auto;border-right:1px solid var(--line);background:var(--bg2);display:flex;flex-direction:column;scrollbar-width:thin;scrollbar-color:var(--line2) transparent}
+.adm .map-wrap{height:100%}
+.adm .side>*{flex:none}
+@media(max-width:980px){.adm{display:flex;flex-direction:column;height:auto}.adm .map-wrap{order:-1;height:44vh;min-height:300px}.adm .side{border-right:0;overflow:visible}}
+.abar{position:sticky;top:0;z-index:5;display:flex;gap:8px;padding:12px 14px;background:rgba(7,19,31,.96);border-bottom:1px solid var(--line);backdrop-filter:blur(8px)}
+.abar select{flex:1;min-width:0}
+.ahead{padding:16px 16px 12px;display:grid;gap:12px}
+.ahead h2{font-size:22px;font-weight:600}
+.ahead .sub{font-size:13px;color:var(--mute)}
+.tabs{display:flex;gap:4px;overflow-x:auto;padding:0 14px 10px;border-bottom:1px solid var(--line);scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{flex:none;background:none;border:1px solid transparent;color:var(--mute);padding:8px 12px;border-radius:30px;font-size:13px;cursor:pointer;white-space:nowrap}
+.tabs button[aria-selected=true]{background:var(--panel2);border-color:var(--line2);color:var(--fg)}
+.tabc{padding:16px 16px calc(32px + env(safe-area-inset-bottom));display:grid;gap:18px}
+.grp{display:grid;gap:10px}
+.grp>h4{font:600 10.5px var(--m);letter-spacing:.16em;color:var(--mute);text-transform:uppercase;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.grp>h4 span{font-weight:500;letter-spacing:.04em;text-transform:none;color:var(--dim)}
+.sep{height:1px;background:var(--line)}
+.list{display:grid;gap:6px}
+.li{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:9px 11px;border:1px solid var(--line);border-radius:9px;background:#07111D;font-size:13px}
+.li .mono{font-size:12px}
+.li .x{background:none;border:0;color:var(--dim);cursor:pointer;padding:4px;border-radius:6px}
+.li .x:hover{color:var(--bad)}
+.legs{width:100%;border-collapse:collapse;font-size:12.5px}
+.legs th,.legs td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+.legs th{font:600 9.5px var(--m);letter-spacing:.12em;color:var(--dim)}
+.legs td.n{font-family:var(--m);text-align:right}
+.legs tr:last-child td{border:0}
+.qr{display:grid;place-items:center;background:#fff;border-radius:12px;padding:12px;width:max-content;margin-inline:auto}
+.qr img,.qr canvas{display:block}
+.linkbox{display:flex;gap:6px}
+.linkbox .in{font-family:var(--m);font-size:12px}
+.tmpl{display:flex;gap:6px;flex-wrap:wrap}
+.tmpl button{font-size:12px;padding:6px 10px;border-radius:20px;border:1px dashed var(--line2);background:none;color:var(--mute);cursor:pointer}
+.tmpl button:hover{color:var(--fg);border-color:var(--acc)}
+.login{min-height:calc(100dvh - var(--hh));display:grid;place-items:center;padding:24px 16px}
+.login .card{width:min(400px,100%);padding:28px;display:grid;gap:16px}
+.login h1{font-size:24px;font-weight:600}
+.pin{font:500 28px var(--m)!important;letter-spacing:.5em;text-align:center;padding:14px!important}
+.empty{padding:28px;text-align:center;color:var(--mute);font-size:14px}
+
+/* Diálogo y toast */
+dialog{background:var(--bg2);color:var(--fg);border:1px solid var(--line2);border-radius:16px;padding:0;width:min(560px,calc(100vw - 24px));max-height:calc(100dvh - 40px);box-shadow:0 30px 80px rgba(0,0,0,.6)}
+dialog::backdrop{background:rgba(2,6,12,.72);backdrop-filter:blur(3px)}
+dialog .dh{display:flex;justify-content:space-between;align-items:center;padding:16px 18px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg2);z-index:1}
+dialog .dh h3{font-size:17px}
+dialog .db{padding:18px;display:grid;gap:16px}
+dialog pre{margin:0;max-height:260px;overflow:auto;background:#040B14;border:1px solid var(--line);border-radius:10px;padding:12px;font:12px/1.5 var(--m);white-space:pre;color:#BFD3E6}
+details summary{cursor:pointer;color:var(--acc);font-size:13.5px}
+#toast{position:fixed;z-index:3000;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translate(-50%,20px);opacity:0;pointer-events:none;background:var(--fg);color:#07131F;padding:11px 18px;border-radius:30px;font-weight:600;font-size:13.5px;transition:all .25s;box-shadow:0 12px 30px rgba(0,0,0,.4);max-width:calc(100vw - 32px);text-align:center}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+#toast.warn{background:var(--warn)}
+#toast.bad{background:var(--bad)}
+.fab{position:fixed;z-index:900;right:calc(16px + env(safe-area-inset-right));bottom:calc(16px + env(safe-area-inset-bottom));display:grid;gap:10px}
+.fab a{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;box-shadow:0 10px 28px rgba(0,0,0,.45);text-decoration:none}
+.fab .w{background:var(--wa);color:#fff}
+.fab .c{background:var(--panel2);border:1px solid var(--line2);color:var(--fg)}
+body.embed .fab{display:none}
+
+/* Informe imprimible */
+#print{display:none}
+@media print{
+  @page{margin:14mm}
+  body{background:#fff!important;color:#0A1C30!important}
+  body>*:not(#print){display:none!important}
+  #print{display:block;font:11pt/1.45 var(--f);color:#0A1C30}
+  #print h1{font-size:20pt;font-weight:600;margin:6pt 0 2pt}
+  #print h2{font:600 8.5pt var(--m);letter-spacing:.14em;text-transform:uppercase;color:#1D4E89;margin:16pt 0 6pt;border-bottom:1px solid #DFE6ED;padding-bottom:4pt}
+  #print table{width:100%;border-collapse:collapse;font-size:9.5pt}
+  #print td,#print th{border-bottom:1px solid #E6ECF2;padding:4pt 6pt;text-align:left;vertical-align:top}
+  #print th{width:34%;color:#56687A;font-weight:500}
+  #print .hd{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #0A1C30;padding-bottom:8pt}
+  #print .sig{display:grid;grid-template-columns:1fr 1fr;gap:24pt;margin-top:28pt}
+  #print .sig div{border-top:1px solid #0A1C30;padding-top:4pt;font-size:9pt;color:#56687A;height:60pt}
+  #print .foot{margin-top:18pt;font-size:8pt;color:#56687A}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="in">
+    <a class="brand" href="#/" data-go="#/" aria-label="Mallorca Yacht Delivery · inicio del tracker">
+      <img src="/assets/logo-icono-claro.svg" alt="" width="30" height="27" decoding="async">
+      <span class="lg">Mallorca Yacht Delivery</span><em>TRACKER</em>
+    </a>
+    <nav class="nav" id="nav" aria-label="Secciones"></nav>
+  </div>
+</header>
+<main id="app" tabindex="-1"></main>
+<div id="toast" role="status" aria-live="polite"></div>
+<dialog id="dlg"></dialog>
+<div id="print" aria-hidden="true"></div>
+
+<!-- Historial público incrustado (opcional). Panel del capitán → Ajustes → "Exportar historial público" y pegue aquí el JSON.
+     Si está vacío, el escaparate usa los datos guardados en el navegador (o los de ejemplo). -->
+<script type="application/json" id="myd-showcase"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
+<script>
+'use strict';
+/* ============================================================
+   CONFIGURACIÓN
+   ============================================================ */
+const CONFIG = {
+  brand: 'Mallorca Yacht Delivery',
+  site: 'https://www.mallorcayachtdelivery.com',
+  quoteUrl: 'https://www.mallorcayachtdelivery.com/#cotizar',
+  phone: '+34646696410', phoneHuman: '+34 646 69 64 10', wa: '34646696410',
+  email: 'info@blue-mediterranean.com',
+  publicUrl: '',          // vacío = esta misma página (https://www.mallorcayachtdelivery.com/seguimiento/)
+  defaultPin: '1852',     // 1852 m = 1 milla náutica. Cámbielo desde Ajustes.
+  storageKey: 'myd.tracker.v1',
+  refreshSec: 60,
+};
+
+/* ============================================================
+   UTILIDADES
+   ============================================================ */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num = (x, d = 0) => { const n = Number(x); return Number.isFinite(n) ? n : d; };
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+const fmtN = (x, d = 0) => num(x).toLocaleString('es-ES', {minimumFractionDigits: d, maximumFractionDigits: d});
+function hashStr(s){ let h = 1779033703 ^ s.length; for (let i = 0; i < s.length; i++){ h = Math.imul(h ^ s.charCodeAt(i), 3432918353); h = h << 13 | h >>> 19; } return h >>> 0; }
+function rng(seed){ let a = typeof seed === 'number' ? seed : hashStr(String(seed)); return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const uid = () => Math.random().toString(36).slice(2, 10);
+const ls = { get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }, set(k, v){ try { localStorage.setItem(k, v); return true; } catch(e){ return false; } } };
+const ss = { get(k){ try { return sessionStorage.getItem(k); } catch(e){ return null; } }, set(k, v){ try { sessionStorage.setItem(k, v); } catch(e){} }, del(k){ try { sessionStorage.removeItem(k); } catch(e){} } };
+function setPath(o, p, v){ const k = p.split('.'); let t = o; while (k.length > 1){ const x = k.shift(); t[x] = t[x] ?? {}; t = t[x]; } t[k[0]] = v; }
+function getPath(o, p){ return p.split('.').reduce((a, k) => a?.[k], o); }
+let toastT;
+function toast(msg, kind = ''){ const t = $('#toast'); t.textContent = msg; t.className = 'on ' + kind; clearTimeout(toastT); toastT = setTimeout(() => t.className = '', 2800); }
+async function sha(s){ try { const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('myd:' + s)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join(''); } catch(e){ return 'h' + hashStr('myd:' + s).toString(16); } }
+async function copy(text){ try { await navigator.clipboard.writeText(text); toast('Copiado al portapapeles'); } catch(e){ const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); toast('Copiado al portapapeles'); } catch(_){ toast('No se pudo copiar', 'warn'); } ta.remove(); } }
+function download(name, text, type = 'application/json'){ const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], {type})); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); }
+
+/* Fechas */
+const fmtT = iso => iso ? new Date(iso).toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'}) : '—';
+const fmtD = iso => iso ? new Date(iso).toLocaleDateString('es-ES', {day: 'numeric', month: 'short', year: 'numeric'}) : '—';
+const fmtDT = iso => iso ? new Date(iso).toLocaleString('es-ES', {weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'}) : '—';
+const fmtDshort = iso => iso ? new Date(iso).toLocaleDateString('es-ES', {day: '2-digit', month: 'short', year: 'numeric'}).toUpperCase().replace(/\./g, '') : '—';
+function dur(h){ if (!Number.isFinite(h) || h < 0) return '—'; const m = Math.round(h * 60); const H = Math.floor(m / 60), M = m % 60; if (H >= 48) return `${Math.floor(H / 24)} d ${H % 24} h`; return H ? `${H} h ${String(M).padStart(2, '0')}` : `${M} min`; }
+function ago(iso){ if (!iso) return '—'; const s = (Date.now() - Date.parse(iso)) / 1000; if (s < 0) return 'programado'; if (s < 90) return 'hace un momento'; if (s < 3600) return `hace ${Math.round(s / 60)} min`; if (s < 86400) return `hace ${Math.floor(s / 3600)} h ${Math.round(s % 3600 / 60)} min`; return fmtD(iso); }
+const pad = n => String(n).padStart(2, '0');
+function toLocal(iso){ if (!iso) return ''; const d = new Date(iso); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+const fromLocal = s => s ? new Date(s).toISOString() : '';
+
+/* ============================================================
+   NAVEGACIÓN / GEODESIA (millas náuticas)
+   ============================================================ */
+const ER = 3440.065, rad = d => d * Math.PI / 180, deg = r => r * 180 / Math.PI;
+function dist(a, b){ const dLa = rad(b.lat - a.lat), dLo = rad(b.lng - a.lng); const h = Math.sin(dLa / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLo / 2) ** 2; return 2 * ER * Math.asin(Math.min(1, Math.sqrt(h))); }
+function brg(a, b){ const y = Math.sin(rad(b.lng - a.lng)) * Math.cos(rad(b.lat)); const x = Math.cos(rad(a.lat)) * Math.sin(rad(b.lat)) - Math.sin(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.cos(rad(b.lng - a.lng)); return (deg(Math.atan2(y, x)) + 360) % 360; }
+function move(p, b, d){ const dd = d / ER, th = rad(b), p1 = rad(p.lat), l1 = rad(p.lng); const p2 = Math.asin(Math.sin(p1) * Math.cos(dd) + Math.cos(p1) * Math.sin(dd) * Math.cos(th)); const l2 = l1 + Math.atan2(Math.sin(th) * Math.sin(dd) * Math.cos(p1), Math.cos(dd) - Math.sin(p1) * Math.sin(p2)); return {lat: deg(p2), lng: ((deg(l2) + 540) % 360) - 180}; }
+const pts = v => [v.origin, ...(v.waypoints || []), v.dest].filter(p => p && Number.isFinite(+p.lat) && Number.isFinite(+p.lng));
+function cum(P){ const c = [0]; for (let i = 1; i < P.length; i++) c.push(c[i - 1] + dist(P[i - 1], P[i])); return c; }
+const routeNm = v => { const c = cum(pts(v)); return c[c.length - 1] || 0; };
+function along(p, P){ const c = cum(P); let best = {d: 0, x: Infinity, i: 0};
+  for (let i = 0; i < P.length - 1; i++){ const a = P[i], b = P[i + 1], k = Math.cos(rad((a.lat + b.lat) / 2));
+    const bx = (b.lng - a.lng) * 60 * k, by = (b.lat - a.lat) * 60, px = (p.lng - a.lng) * 60 * k, py = (p.lat - a.lat) * 60;
+    const L2 = bx * bx + by * by; const t = L2 ? clamp((px * bx + py * by) / L2, 0, 1) : 0; const x = Math.hypot(px - t * bx, py - t * by);
+    if (x < best.x) best = {d: c[i] + t * (c[i + 1] - c[i]), x, i}; }
+  return best; }
+function pointAt(P, d){ const c = cum(P); if (d <= 0) return {lat: P[0].lat, lng: P[0].lng}; for (let i = 1; i < P.length; i++){ if (d <= c[i]) return move(P[i - 1], brg(P[i - 1], P[i]), d - c[i - 1]); } const z = P[P.length - 1]; return {lat: z.lat, lng: z.lng}; }
+function courseAt(P, d){ const c = cum(P); for (let i = 1; i < P.length; i++) if (d <= c[i]) return brg(P[i - 1], P[i]); return P.length > 1 ? brg(P[P.length - 2], P[P.length - 1]) : 0; }
+function ddm(v, isLat){ const h = isLat ? (v >= 0 ? 'N' : 'S') : (v >= 0 ? 'E' : 'W'); const a = Math.abs(v); let d = Math.floor(a), m = (a - d) * 60; if (m >= 59.995){ d++; m = 0; } return `${String(d).padStart(isLat ? 2 : 3, '0')}°${m.toFixed(2).padStart(5, '0')}′${h}`; }
+function parseCoord(s, isLat){ s = String(s ?? '').trim().toUpperCase().replace(/(\d),(\d)/g, '$1.$2'); if (!s) return NaN; const neg = /[SWO]/.test(s) || s.startsWith('-'); const n = s.match(/\d+(\.\d+)?/g); if (!n) return NaN; let v = +n[0] + (n[1] ? +n[1] / 60 : 0) + (n[2] ? +n[2] / 3600 : 0); v = neg ? -v : v; return Math.abs(v) <= (isLat ? 90 : 180) ? v : NaN; }
+const DIRS = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSO','SO','OSO','O','ONO','NO','NNO'];
+const dirName = d => DIRS[Math.round(((d % 360) + 360) % 360 / 22.5) % 16];
+const MEDWIND = d => ['Tramontana','Gregal','Levante','Siroco','Migjorn','Lebeche','Poniente','Mistral'][Math.round(((d % 360) + 360) % 360 / 45) % 8];
+const BF = [[1,'Calma'],[4,'Ventolina'],[7,'Flojito'],[11,'Flojo'],[17,'Bonancible'],[22,'Fresquito'],[28,'Fresco'],[34,'Frescachón'],[41,'Temporal'],[48,'Temporal fuerte'],[56,'Temporal duro'],[64,'Temporal muy duro'],[999,'Huracanado']];
+const beaufort = kn => { const i = BF.findIndex(b => kn < b[0]); return {f: i, name: BF[i][1]}; };
+const douglas = m => m < .1 ? 'Rizada' : m < .5 ? 'Marejadilla' : m < 1.25 ? 'Marejada' : m < 2.5 ? 'Fuerte marejada' : m < 4 ? 'Gruesa' : m < 6 ? 'Muy gruesa' : 'Arbolada';
+
+/* ============================================================
+   PUERTOS, RUTAS Y DATOS DE EJEMPLO
+   ============================================================ */
+const AREAS = {mallorca: 'Mallorca', islas: 'Pitiusas y Menorca', peninsula: 'Península', riviera: 'Costa Azul'};
+const PORTS = [
+  {id:'pmi', name:'Palma', full:'Palma · Club de Mar', area:'mallorca', lat:39.5636, lng:2.6345},
+  {id:'adr', name:'Port Adriano', area:'mallorca', lat:39.4877, lng:2.4770},
+  {id:'and', name:"Port d'Andratx", area:'mallorca', lat:39.5440, lng:2.3850},
+  {id:'alc', name:'Alcúdia', area:'mallorca', lat:39.8370, lng:3.1380},
+  {id:'pcl', name:'Portocolom', area:'mallorca', lat:39.4180, lng:3.2640},
+  {id:'ibz', name:'Ibiza', full:'Ibiza · Marina Ibiza', area:'islas', lat:38.9145, lng:1.4440},
+  {id:'fmt', name:'Formentera', full:'Formentera · La Savina', area:'islas', lat:38.7350, lng:1.4170},
+  {id:'mah', name:'Mahón', area:'islas', lat:39.8880, lng:4.2660},
+  {id:'ciu', name:'Ciutadella', area:'islas', lat:40.0020, lng:3.8380},
+  {id:'bcn', name:'Barcelona', full:'Barcelona · Port Vell', area:'peninsula', lat:41.3760, lng:2.1840},
+  {id:'gin', name:'Port Ginesta', area:'peninsula', lat:41.2600, lng:1.9280},
+  {id:'tgn', name:'Tarragona', area:'peninsula', lat:41.1070, lng:1.2420},
+  {id:'vlc', name:'Valencia', full:'Valencia · Marina', area:'peninsula', lat:39.4600, lng:-0.3220},
+  {id:'den', name:'Dénia', area:'peninsula', lat:38.8420, lng:0.1130},
+  {id:'ali', name:'Alicante', area:'peninsula', lat:38.3380, lng:-0.4830},
+  {id:'ctg', name:'Cartagena', area:'peninsula', lat:37.5960, lng:-0.9830},
+  {id:'mrs', name:'Marsella', area:'riviera', lat:43.2950, lng:5.3650},
+  {id:'stt', name:'Saint-Tropez', area:'riviera', lat:43.2720, lng:6.6380},
+  {id:'cns', name:'Cannes', area:'riviera', lat:43.5480, lng:7.0170},
+  {id:'atb', name:'Antibes', full:'Antibes · Port Vauban', area:'riviera', lat:43.5850, lng:7.1280},
+  {id:'mco', name:'Mónaco', area:'riviera', lat:43.7350, lng:7.4230},
+];
+const portById = id => PORTS.find(p => p.id === id);
+const portPt = id => { const p = portById(id); return {id: p.id, name: p.name, lat: p.lat, lng: p.lng, area: p.area}; };
+const TAIL_W = [[39.49,2.36],[39.42,2.50],[39.50,2.62]];
+const ROUTES = {
+  'bcn-pmi': [[41.33,2.22],[39.62,2.18],...TAIL_W],
+  'gin-pmi': [[41.22,1.95],[39.62,2.18],...TAIL_W],
+  'bcn-and': [[41.33,2.22],[39.62,2.18],[39.535,2.33]],
+  'tgn-adr': [[41.05,1.25],[39.60,2.12],[39.46,2.38],[39.47,2.47]],
+  'vlc-pmi': [[39.44,-0.24],[39.46,2.30],[39.42,2.50],[39.50,2.62]],
+  'den-pmi': [[38.86,0.24],[39.42,2.45],[39.50,2.62]],
+  'ali-pmi': [[38.36,-0.36],[38.80,0.40],[39.17,1.62],[39.42,2.48],[39.50,2.62]],
+  'ibz-pmi': [[38.895,1.48],[39.42,2.48],[39.50,2.62]],
+  'fmt-pmi': [[38.75,1.48],[38.86,1.62],[39.42,2.48],[39.50,2.62]],
+  'mah-pmi': [[39.865,4.32],[39.70,3.62],[39.20,3.10],[39.30,2.80],[39.45,2.70]],
+  'atb-pmi': [[43.50,7.15],[42.40,5.40],[40.05,2.95],[39.65,2.20],...TAIL_W],
+  'cns-pmi': [[43.47,7.02],[42.40,5.40],[40.05,2.95],[39.65,2.20],...TAIL_W],
+  'mrs-pmi': [[43.22,5.25],[40.05,2.95],[39.65,2.20],...TAIL_W],
+  'vlc-alc': [[39.44,-0.24],[39.62,2.15],[39.95,2.75],[40.03,3.15],[39.95,3.30],[39.84,3.25]],
+};
+const CHECKS = [
+  ['eng','Sala de máquinas: aceite, refrigerante, correas, filtros y fugas'],
+  ['fuel','Combustible a bordo, separadores de agua y reserva calculada'],
+  ['bilge','Bombas de achique y alarmas de sentina probadas'],
+  ['steer','Gobierno, hélice de proa, flaps y transmisiones'],
+  ['elec','Baterías, cargadores, generador y luces de navegación'],
+  ['safe','Balsa salvavidas, chalecos, bengalas y extintores en fecha'],
+  ['comms','VHF/DSC, AIS, radiobaliza EPIRB y comunicaciones'],
+  ['nav','Plotter, radar, piloto automático y cartas actualizadas'],
+  ['wx','Parte meteorológico y ventana de salida confirmados'],
+  ['docs','Documentación del barco, seguro y autorización del armador'],
+  ['photo','Reportaje fotográfico de estado (check-in)'],
+];
+const LOGTYPES = {nav:['Navegación',''], tec:['Técnico','tec'], met:['Meteo','met'], fuel:['Combustible','fuel'], port:['Puerto','port'], seg:['Seguridad','sgr']};
+const ROLES = ['Patrón','Marinero/a','Mecánico/a','Segundo patrón'];
+
+function genId(date = new Date(), seed){ const A = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; const r = seed ? rng(seed) : Math.random; let s = ''; for (let i = 0; i < 6; i++) s += A[Math.floor(r() * A.length)]; const d = new Date(date); return `MYD-${String(d.getFullYear()).slice(2)}${pad(d.getMonth() + 1)}-${s}`; }
+function baseVoyage(){ const t = new Date(); t.setDate(t.getDate() + 1); t.setHours(8, 0, 0, 0);
+  return { id: genId(), status: 'planned', createdAt: new Date().toISOString(),
+    vessel: {name:'', model:'', builder:'', length:15, beam:4.5, year:2020, flag:'ES', engines:'', fuelCap:2000, lph:180},
+    owner: {name:'', phone:'', email:''},
+    crew: [{role:'Patrón', name:'', cert:'Capitán de Yate · STCW'}],
+    origin: portPt('bcn'), dest: portPt('pmi'), waypoints: (ROUTES['bcn-pmi'] || []).map(([lat, lng]) => ({lat, lng})),
+    depart: t.toISOString(), cruiseKn: 18, etaManual: '', arrived: '',
+    track: [], log: [], sea: {bf: 2, wave: 0.3, wind: '', note: '', t: ''}, fuelPct: 95,
+    privacy: {radius: 5, delayMin: 15, showTrack: true}, checklist: {},
+    report: {nm: 0, hours: 0, fuelL: 0, engineH: 0, summary: '', incidents: ''}, showcase: true, anonymize: false };
+}
+function synthTrack(v, t0, t1, kn, seed, step = 30){ const P = pts(v), total = routeNm(v), r = rng(seed); const out = []; let d = 0;
+  for (let t = t0; t <= t1; t += step * 60000){ const p = t === t0 ? {lat: P[0].lat, lng: P[0].lng} : move(pointAt(P, d), r() * 360, r() * 0.25);
+    out.push({t: new Date(t).toISOString(), lat: +p.lat.toFixed(5), lng: +p.lng.toFixed(5), sog: t === t0 ? 4 : +(kn * (0.93 + r() * 0.1)).toFixed(1), cog: Math.round(courseAt(P, d) + (r() - .5) * 8 + 360) % 360, src: 'gps'});
+    d = Math.min(total, d + kn * step / 60 * (0.95 + r() * 0.08)); if (d >= total) break; }
+  return out; }
+
+function seed(){
+  const now = Date.now(), H = 3.6e6, M = 60000;
+  const voyages = [];
+  // [salida, origen, destino, barco, nudos crucero, consumo L/h, informe del patrón, mar, anonimizar]
+  const DONE = [
+    ['2026-10-12T07:40','bcn','pmi',{name:'Mestral',model:'Princess F50',builder:'Princess Yachts',length:15.6,year:2022,flag:'GB',engines:'2× Volvo Penta IPS 800'},22,190,'Salida con mar llana y Tramontana flojita de popa desde el través de Dragonera. Motores y temperaturas nominales toda la travesía. Entrega en Club de Mar con check-out técnico y reportaje fotográfico.',{bf:3,wave:.5,wind:'N 9 kn'},false],
+    ['2026-09-27T06:30','atb','pmi',{name:'Lady Blau',model:'Riva 56 Rivale',builder:'Riva',length:17.3,year:2021,flag:'MT',engines:'2× MAN V8 1000'},24,260,'Travesía directa de 290 millas con ventana meteorológica confirmada 72 h antes. Mistral residual en el golfo de León, mar de popa. Repostaje completo en origen; llegada a Palma con un 22 % de reserva.',{bf:4,wave:1.1,wind:'NO 16 kn'},true],
+    ['2026-09-10T08:00','vlc','pmi',{name:'Siroco',model:'Azimut 55 Fly',builder:'Azimut Yachts',length:16.8,year:2019,flag:'ES',engines:'2× Cummins QSM11 715'},20,200,'Cruce del canal de Ibiza al norte de las Pitiusas con Levante flojo. Sustituido en origen un filtro decantador. Sin incidencias en travesía; entrega al armador en Palma a la hora prevista.',{bf:3,wave:.7,wind:'E 10 kn'},false],
+    ['2026-08-22T09:15','ibz','pmi',{name:'Es Vedrà',model:'Axopar 37 Sun-Top',builder:'Axopar',length:11.5,year:2023,flag:'ES',engines:'2× Mercury V8 300'},28,110,'Salto corto con mar llana. Navegación a régimen económico para cuidar los fueraborda recién revisados. Entrega en pantalán con lavado de agua dulce.',{bf:2,wave:.3,wind:'SO 6 kn'},false],
+    ['2026-07-30T07:00','mah','pmi',{name:'Xaloc',model:'Fairline Squadron 50',builder:'Fairline',length:15.9,year:2020,flag:'GB',engines:'2× Volvo Penta D11 725'},20,185,'Rumbo por el sur de Mallorca, dejando Cabrera por babor. Fuerte calor: vigilancia reforzada de temperaturas de escape y sala de máquinas. Llegada sin novedad.',{bf:3,wave:.6,wind:'SE 11 kn'},false],
+    ['2026-06-14T07:30','den','pmi',{name:'Bonança',model:'Beneteau Gran Turismo 45',builder:'Beneteau',length:13.9,year:2021,flag:'ES',engines:'2× Volvo Penta IPS 600'},22,140,'Ventana perfecta con mar en calma. Prueba de mar completa en las primeras 5 millas antes de abrir rumbo a Mallorca. Check-out con informe de horas de motor.',{bf:2,wave:.2,wind:'NE 5 kn'},false],
+    ['2026-05-20T05:30','mrs','pmi',{name:'Blue Calanque',model:'Sunseeker Manhattan 55',builder:'Sunseeker',length:17.0,year:2018,flag:'FR',engines:'2× Volvo Penta D13 900'},18,230,'Salida al alba tras 24 h de espera por Mistral. Mar residual de 1 m las primeras 40 millas, después en calma. Tripulación de 3 (patrón, marinero y mecánico) por la distancia.',{bf:4,wave:1.2,wind:'NO 18 kn'},true],
+    ['2026-04-27T07:00','tgn','adr',{name:'Delta',model:'De Antonio Yachts D50 Open',builder:'De Antonio Yachts',length:15.1,year:2023,flag:'ES',engines:'4× Mercury Verado 400'},24,210,'Entrega de unidad nueva desde astillero. Rodaje respetado según fabricante y registro de parámetros cada hora. Recepción en Port Adriano con el broker.',{bf:3,wave:.6,wind:'O 9 kn'},false],
+    ['2026-04-08T06:45','ali','pmi',{name:'Tabarca',model:'Prestige 520 Fly',builder:'Prestige Yachts',length:16.0,year:2020,flag:'ES',engines:'2× Volvo Penta IPS 950'},18,170,'Navegación por el norte de Ibiza para evitar el mar de fondo del sur. Parada técnica no necesaria: autonomía calculada con reserva del 25 %.',{bf:4,wave:1.0,wind:'SO 15 kn'},false],
+    ['2025-10-18T08:00','bcn','and',{name:'Galatea',model:'Absolute 52 Fly',builder:'Absolute Yachts',length:16.0,year:2019,flag:'IT',engines:'2× Volvo Penta IPS 800'},20,180,'Llegada a Andratx a media tarde con Poniente flojo. Fondeo de cortesía para revisión final de sentinas y entrega al capitán residente.',{bf:3,wave:.6,wind:'O 10 kn'},false],
+    ['2025-09-02T05:00','cns','pmi',{name:'Nero',model:'Pershing 6X',builder:'Pershing',length:18.9,year:2022,flag:'MT',engines:'2× MAN V12 1550'},30,380,'Barco de altas prestaciones: travesía a 30 kn de crucero con monitorización continua de parámetros. Mar llana todo el golfo. Entrega en Palma en el mismo día.',{bf:2,wave:.4,wind:'N 7 kn'},true],
+    ['2025-07-11T09:00','fmt','pmi',{name:'Illetes',model:'Galeon 500 Fly',builder:'Galeon',length:15.6,year:2021,flag:'PL',engines:'2× Volvo Penta D11 725'},22,175,'Fin de temporada de alquiler en Formentera. Inspección de casco y hélices en origen. Cruce tranquilo con Migjorn flojo.',{bf:3,wave:.5,wind:'S 8 kn'},false],
+    ['2025-06-05T06:00','vlc','alc',{name:'Albufera',model:'Astondoa 52 Fly',builder:'Astondoa',length:16.4,year:2017,flag:'ES',engines:'2× MAN R6 800'},18,175,'Ruta por la costa norte, montando Dragonera y Formentor. Mar de fondo del NE en la tramuntana mallorquina; velocidad ajustada para confort y seguridad.',{bf:4,wave:1.3,wind:'NE 15 kn'},false],
+    ['2025-05-12T07:15','gin','pmi',{name:'Garbí',model:'Cranchi E52 S Evoluzione',builder:'Cranchi',length:16.0,year:2022,flag:'ES',engines:'2× Volvo Penta IPS 800'},24,190,'Recogida en Port Ginesta tras compraventa. Revisión documental con el broker y travesía directa. Entrega con informe completo para el nuevo armador.',{bf:2,wave:.4,wind:'E 7 kn'},false],
+  ];
+  DONE.forEach((d, i) => {
+    const [dep, from, to, vessel, kn, lph, summary, sea, anon] = d; const v = baseVoyage();
+    v.id = genId(new Date(dep), 'done' + i); v.status = 'completed'; v.vessel = {...v.vessel, ...vessel, lph}; v.origin = portPt(from); v.dest = portPt(to);
+    v.waypoints = (ROUTES[from + '-' + to] || []).map(([lat, lng]) => ({lat, lng})); v.cruiseKn = kn; v.depart = new Date(dep).toISOString();
+    const nm = routeNm(v), hrs = nm / kn + 0.3, t0 = Date.parse(v.depart), t1 = t0 + hrs * H; v.arrived = new Date(t1).toISOString();
+    v.track = synthTrack(v, t0, t1, kn, 'd' + i); v.track.push({t: v.arrived, lat: v.dest.lat, lng: v.dest.lng, sog: 0, cog: 0, src: 'gps'});
+    v.sea = {...sea, note: '', t: v.depart};
+    v.checklist = Object.fromEntries(CHECKS.map(([k]) => [k, new Date(t0 - 80 * M).toISOString()]));
+    v.crew = [{role:'Patrón', name:'', cert:'Capitán de Yate · STCW'}, ...(nm > 200 || vessel.length > 17 ? [{role:'Marinero/a', name:'', cert:'Formación Básica STCW'}] : []), ...(from === 'mrs' ? [{role:'Mecánico/a', name:'', cert:'Mecánico naval'}] : [])];
+    v.log = [
+      {id: uid(), t: new Date(t0 - 90 * M).toISOString(), type: 'tec', pub: true, text: `Check-in técnico completado en ${v.origin.name}: sala de máquinas, sentinas, seguridad y electrónica OK.`},
+      {id: uid(), t: v.depart, type: 'nav', pub: true, text: `Salida de ${v.origin.name}. Viento ${sea.wind}, ${douglas(sea.wave).toLowerCase()}.`},
+      {id: uid(), t: new Date(t0 + hrs * H * .5).toISOString(), type: 'nav', pub: true, text: `Medio camino. Navegando a ${kn} kn, motores con parámetros nominales.`},
+      {id: uid(), t: v.arrived, type: 'port', pub: true, text: `Llegada a ${v.dest.name}. Check-out técnico y reportaje fotográfico entregados al armador.`},
+    ];
+    v.report = {nm: Math.round(nm), hours: +hrs.toFixed(2), fuelL: Math.round(hrs * lph / 10) * 10, engineH: +(hrs + .4).toFixed(1), summary, incidents: ''};
+    v.showcase = true; v.anonymize = anon; v.fuelPct = 25; v.privacy = {radius: 5, delayMin: 15, showTrack: true};
+    v.owner = {name: 'Armador (ejemplo)', phone: '', email: ''}; voyages.push(v);
+  });
+  // En navegación A — Barcelona → Palma
+  const a = baseVoyage(); a.id = 'MYD-2610-TRMN26'; a.status = 'active';
+  a.vessel = {name:'Tramuntana', model:'Azimut S6', builder:'Azimut Yachts', length:18.8, beam:5.0, year:2023, flag:'ES', engines:'3× Volvo Penta IPS 600', fuelCap:2850, lph:240};
+  a.owner = {name:'Armador (ejemplo)', phone:'', email:''}; a.crew = [{role:'Patrón', name:'', cert:'Capitán de Yate · STCW'}, {role:'Marinero/a', name:'', cert:'Formación Básica STCW'}];
+  a.cruiseKn = 20; const ta0 = now - 3.3 * H; a.depart = new Date(ta0).toISOString(); a.track = synthTrack(a, ta0, now - 4 * M, 20, 'act-a', 20);
+  a.sea = {bf: 3, wave: .6, wind: 'NE 10 kn', note: 'Gregal flojo y marejadilla. Navegación cómoda.', t: new Date(now - 40 * M).toISOString()}; a.fuelPct = 64;
+  a.checklist = Object.fromEntries(CHECKS.map(([k]) => [k, new Date(ta0 - 70 * M).toISOString()]));
+  a.log = [
+    {id: uid(), t: new Date(ta0 - 75 * M).toISOString(), type: 'tec', pub: true, text: 'Check-in técnico completado: niveles, sentinas, equipos de seguridad y electrónica OK. Reportaje fotográfico enviado.'},
+    {id: uid(), t: new Date(ta0 - 25 * M).toISOString(), type: 'fuel', pub: true, text: 'Repostaje en origen: 2.100 L de gasóleo. Depósitos al 96 %.'},
+    {id: uid(), t: a.depart, type: 'nav', pub: true, text: 'Salida de Barcelona · Port Vell. Mar llana, viento NE 8 kn.'},
+    {id: uid(), t: new Date(ta0 + 75 * M).toISOString(), type: 'nav', pub: true, text: 'Navegando a 20 kn de crucero. Motores a 2.150 rpm, temperaturas y presiones nominales.'},
+    {id: uid(), t: new Date(ta0 + 140 * M).toISOString(), type: 'met', pub: true, text: 'Gregal flojo 10–12 kn, marejadilla. Rumbo directo a Dragonera.'},
+    {id: uid(), t: new Date(ta0 + 150 * M).toISOString(), type: 'tec', pub: false, text: 'Ronda de sala de máquinas: ligera humedad en prensaestopas de babor. Vigilar y avisar al taller en destino.'},
+  ];
+  voyages.push(a);
+  // En navegación B — Antibes → Palma
+  const b = baseVoyage(); b.id = 'MYD-2610-BLLV62'; b.status = 'active';
+  b.vessel = {name:'Bellver', model:'Princess S62', builder:'Princess Yachts', length:19.3, beam:5.1, year:2022, flag:'MT', engines:'2× MAN V12 1400', fuelCap:3400, lph:280};
+  b.owner = {name:'Armador (ejemplo)', phone:'', email:''}; b.crew = [{role:'Patrón', name:'', cert:'Capitán de Yate · STCW'}, {role:'Marinero/a', name:'', cert:'Formación Básica STCW'}, {role:'Mecánico/a', name:'', cert:'Mecánico naval'}];
+  b.origin = portPt('atb'); b.waypoints = ROUTES['atb-pmi'].map(([lat, lng]) => ({lat, lng})); b.cruiseKn = 17;
+  const tb0 = now - 8.6 * H; b.depart = new Date(tb0).toISOString(); b.track = synthTrack(b, tb0, now - 9 * M, 17, 'act-b', 30);
+  b.sea = {bf: 4, wave: 1.1, wind: 'NO 15 kn', note: 'Mistral residual en el golfo de León, mar de popa.', t: new Date(now - 70 * M).toISOString()}; b.fuelPct = 58;
+  b.checklist = Object.fromEntries(CHECKS.map(([k]) => [k, new Date(tb0 - 90 * M).toISOString()]));
+  b.privacy = {radius: 8, delayMin: 30, showTrack: true};
+  b.log = [
+    {id: uid(), t: new Date(tb0 - 100 * M).toISOString(), type: 'tec', pub: true, text: 'Check-in técnico en Port Vauban con el capitán residente. Todo conforme.'},
+    {id: uid(), t: new Date(tb0 - 30 * M).toISOString(), type: 'met', pub: true, text: 'Ventana confirmada: Mistral amainando, previsión de mar de popa de 1 m a la baja.'},
+    {id: uid(), t: b.depart, type: 'nav', pub: true, text: 'Salida de Antibes. Travesía directa de unas 290 millas hacia Palma.'},
+    {id: uid(), t: new Date(tb0 + 3 * H).toISOString(), type: 'seg', pub: true, text: 'Guardias de 3 h establecidas. AIS y VHF en escucha permanente canal 16.'},
+    {id: uid(), t: new Date(tb0 + 6 * H).toISOString(), type: 'fuel', pub: true, text: 'Transferencia de combustible entre tanques completada. Consumo según lo previsto.'},
+    {id: uid(), t: new Date(tb0 + 7.5 * H).toISOString(), type: 'nav', pub: true, text: 'Golfo de León atrás. Mar de popa de 1 m, navegación cómoda a 17 kn.'},
+  ];
+  voyages.push(b);
+  // Programada — Dénia → Palma
+  const c = baseVoyage(); c.id = 'MYD-2610-FRDA59'; c.status = 'planned';
+  c.vessel = {name:'Sa Foradada', model:'Prestige 590', builder:'Prestige Yachts', length:18.3, beam:5.0, year:2020, flag:'ES', engines:'2× Volvo Penta IPS 950', fuelCap:2300, lph:210};
+  c.owner = {name:'Armador (ejemplo)', phone:'', email:''}; c.origin = portPt('den'); c.waypoints = ROUTES['den-pmi'].map(([lat, lng]) => ({lat, lng})); c.cruiseKn = 19;
+  const tc0 = new Date(now + 2 * 86400000); tc0.setHours(8, 0, 0, 0); c.depart = tc0.toISOString();
+  c.checklist = {docs: new Date(now - 26 * H).toISOString(), wx: new Date(now - 3 * H).toISOString(), photo: ''};
+  c.log = [{id: uid(), t: new Date(now - 26 * H).toISOString(), type: 'port', pub: true, text: 'Documentación y autorización del armador recibidas. Amarre de llegada reservado en Palma.'},
+           {id: uid(), t: new Date(now - 3 * H).toISOString(), type: 'met', pub: true, text: 'Primera ventana meteorológica favorable para la fecha prevista. Se confirmará 24 h antes.'}];
+  voyages.push(c);
+  return {v: 1, voyages, settings: {pinHash: '', demo: true, syncUrl: '', syncKey: ''}};
+}
+
+/* ============================================================
+   ESTADO Y PERSISTENCIA
+   ============================================================ */
+let S = (() => { const raw = ls.get(CONFIG.storageKey); if (raw){ try { const o = JSON.parse(raw); if (o && Array.isArray(o.voyages)) return o; } catch(e){} } return null; })();
+if (!S){ S = seed(); ls.set(CONFIG.storageKey, JSON.stringify(S)); }
+S.settings = {pinHash: '', demo: true, syncUrl: '', syncKey: '', ...(S.settings || {})};
+function persist(){ if (!ls.set(CONFIG.storageKey, JSON.stringify(S))) toast('Aviso: este navegador no permite guardar datos', 'warn'); }
+const byId = id => S.voyages.find(v => v.id === id);
+const vesselLabel = (v, pub) => (pub && v.anonymize) ? v.vessel.model : (v.vessel.name || v.vessel.model || 'Embarcación');
+
+/* Estadísticas reales (capitán) */
+function stats(v, now = Date.now(), track = v.track || []){
+  const P = pts(v), total = routeNm(v), last = track[track.length - 1];
+  let done = 0;
+  if (v.status === 'completed') done = total;
+  else if (v.status === 'active' && last && P.length > 1) done = clamp(along(last, P).d, 0, total);
+  const remain = Math.max(0, total - done);
+  const rec = track.slice(-4).map(p => num(p.sog)).filter(x => x > 1.5);
+  const spd = rec.length ? rec.reduce((a, b) => a + b, 0) / rec.length : num(v.cruiseKn, 15);
+  let eta;
+  if (v.status === 'completed') eta = v.arrived;
+  else if (v.etaManual) eta = v.etaManual;
+  else if (v.status === 'planned') eta = new Date(Date.parse(v.depart) + total / Math.max(num(v.cruiseKn, 15), 3) * 3.6e6).toISOString();
+  else eta = new Date((last ? Date.parse(last.t) : now) + remain / Math.max(spd, 3) * 3.6e6).toISOString();
+  const elapsedH = v.status === 'active' ? (now - Date.parse(v.depart)) / 3.6e6 : v.status === 'completed' ? (Date.parse(v.arrived) - Date.parse(v.depart)) / 3.6e6 : 0;
+  return {total, done, remain, pct: total ? done / total : 0, sog: num(last?.sog), cog: num(last?.cog), spd, eta, last, elapsedH};
+}
+
+/* Zona de privacidad: rejilla de lado R + desplazamiento estable → la posición real queda siempre dentro del círculo de radio R */
+function zoneOf(p, r, seedKey){
+  if (!r) return {lat: p.lat, lng: p.lng};
+  const dLat = r / 60, ci = Math.floor(p.lat / dLat), cLat = (ci + .5) * dLat, dLng = r / (60 * Math.cos(rad(cLat))), cj = Math.floor(p.lng / dLng);
+  const c = {lat: cLat, lng: (cj + .5) * dLng}; const q = rng(seedKey + ':' + ci + ':' + cj);
+  return move(c, q() * 360, q() * .25 * r);
+}
+
+/* Vista pública saneada: lo ÚNICO que ve el armador (también lo que se sincroniza o viaja en el enlace) */
+function publicView(v, now = Date.now()){
+  const pr = {radius: 5, delayMin: 15, showTrack: true, ...(v.privacy || {})}; const r = num(pr.radius), delay = num(pr.delayMin);
+  const vis = v.status === 'completed' ? v.track : (v.track || []).filter(p => Date.parse(p.t) <= now - delay * 60000);
+  const st = stats(v, now, vis); const last = vis[vis.length - 1]; const step = r ? Math.max(1, r / 2) : 0;
+  const done = v.status === 'completed' ? st.total : clamp(step ? Math.round(st.done / step) * step : st.done, 0, st.total);
+  let eta = st.eta; if (v.status !== 'completed' && eta){ const q = 15 * 60000; eta = new Date(Math.round(Date.parse(eta) / q) * q).toISOString(); }
+  let track = [];
+  if (v.status === 'completed') track = vis.map(p => ({lat: +p.lat.toFixed(4), lng: +p.lng.toFixed(4)}));
+  else if (pr.showTrack) for (const p of vis){ const z = zoneOf(p, r, v.id); const t = track[track.length - 1]; if (!t || dist(t, z) > .05) track.push({lat: +z.lat.toFixed(4), lng: +z.lng.toFixed(4)}); }
+  const zone = v.status === 'active' && last ? (() => { const z = zoneOf(last, r, v.id); return {lat: +z.lat.toFixed(4), lng: +z.lng.toFixed(4), r}; })() : null;
+  const ck = CHECKS.map(([k, l]) => ({l, ok: !!v.checklist?.[k]}));
+  return {
+    id: v.id, status: v.status, gen: new Date(now).toISOString(),
+    vessel: {name: v.vessel.name, model: v.vessel.model, builder: v.vessel.builder, length: v.vessel.length, year: v.vessel.year, flag: v.vessel.flag},
+    crew: (v.crew || []).map(c => ({role: c.role, cert: c.cert || ''})),
+    origin: {name: v.origin.name, lat: v.origin.lat, lng: v.origin.lng}, dest: {name: v.dest.name, lat: v.dest.lat, lng: v.dest.lng},
+    waypoints: (v.waypoints || []).map(w => ({lat: +(+w.lat).toFixed(4), lng: +(+w.lng).toFixed(4)})),
+    depart: v.depart, arrived: v.arrived || '', eta, totalNm: +st.total.toFixed(1), doneNm: +done.toFixed(1),
+    sog: last ? Math.round(num(last.sog)) : 0, cog: last ? Math.round(num(last.cog) / 5) * 5 % 360 : 0, avgKn: +st.spd.toFixed(1),
+    last: last ? last.t : '', zone, track: track.slice(-120),
+    log: (v.log || []).filter(l => l.pub).sort((a, b) => Date.parse(b.t) - Date.parse(a.t)).slice(0, 30).map(l => ({t: l.t, type: l.type, text: l.text})),
+    sea: v.sea ? {bf: v.sea.bf, wave: v.sea.wave, wind: v.sea.wind, note: v.sea.note, t: v.sea.t} : null,
+    checks: ck, privacy: {radius: r, delayMin: delay},
+    report: v.status === 'completed' ? {nm: v.report?.nm, hours: v.report?.hours, summary: v.report?.summary} : null,
+  };
+}
+
+/* Resumen para el escaparate público (sin datos del armador) */
+function showcaseItem(v){
+  const st = stats(v); const hours = num(v.report?.hours) || st.elapsedH; const nm = num(v.report?.nm) || Math.round(st.total);
+  return {id: v.id.slice(-6), date: v.depart, arrived: v.arrived, origin: {name: v.origin.name, lat: v.origin.lat, lng: v.origin.lng, area: portById(v.origin.id)?.area || 'peninsula'},
+    dest: {name: v.dest.name, lat: v.dest.lat, lng: v.dest.lng}, waypoints: (v.waypoints || []).map(w => ({lat: +(+w.lat).toFixed(3), lng: +(+w.lng).toFixed(3)})),
+    vessel: {label: vesselLabel(v, true), model: v.vessel.model, builder: v.vessel.builder, length: v.vessel.length, year: v.vessel.year},
+    nm, hours: +hours.toFixed(2), avgKn: hours ? +(nm / hours).toFixed(1) : 0, summary: v.report?.summary || '', sea: v.sea ? {bf: v.sea.bf, wave: v.sea.wave, wind: v.sea.wind} : null,
+    crew: (v.crew || []).length};
+}
+function showcaseLocal(){ return {gen: new Date().toISOString(), demo: !!S.settings.demo, active: S.voyages.filter(v => v.status === 'active').length,
+  voyages: S.voyages.filter(v => v.status === 'completed' && v.showcase !== false).sort((a, b) => Date.parse(b.depart) - Date.parse(a.depart)).map(showcaseItem)}; }
+
+/* ============================================================
+   SINCRONIZACIÓN OPCIONAL (endpoint propio) + ENLACE CON INSTANTÁNEA
+   ============================================================ */
+const PHP_ENDPOINT = `<` + `?php
+// myd-sync.php · Almacén JSON mínimo para Mallorca Yacht Delivery Tracker
+// Súbalo a su hosting (p. ej. /seguimiento/myd-sync.php) y pegue su URL en Ajustes.
+$KEY = 'CAMBIE-ESTA-CLAVE-LARGA';           // misma clave que en Ajustes → Sincronización
+$dir = __DIR__ . '/myd-data';
+if (!is_dir($dir)) { mkdir($dir, 0750, true); file_put_contents("$dir/.htaccess", "Deny from all"); }
+header('Content-Type: application/json; charset=utf-8');
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Headers: Content-Type, X-MYD-Key');
+header('Access-Control-Allow-Methods: GET, PUT, OPTIONS');
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') exit;
+$id = preg_replace('/[^A-Za-z0-9_-]/', '', $_GET['id'] ?? '');
+if ($id === '' || strlen($id) > 40) { http_response_code(400); exit('{}'); }
+$f = "$dir/$id.json";
+if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
+  if (!hash_equals($KEY, $_SERVER['HTTP_X_MYD_KEY'] ?? '')) { http_response_code(403); exit('{}'); }
+  $b = file_get_contents('php://input');
+  if (strlen($b) > 600000 || json_decode($b) === null) { http_response_code(400); exit('{}'); }
+  file_put_contents($f, $b, LOCK_EX); exit('{"ok":true}');
+}
+if (!is_file($f)) { http_response_code(404); exit('{}'); }
+header('Cache-Control: no-store');
+readfile($f);`;
+const Sync = {
+  on: () => !!S.settings.syncUrl,
+  url: id => S.settings.syncUrl + (S.settings.syncUrl.includes('?') ? '&' : '?') + 'id=' + encodeURIComponent(id),
+  async pull(id){ if (!Sync.on()) return null; const r = await fetch(Sync.url(id), {cache: 'no-store'}); return r.ok ? r.json() : null; },
+  async put(id, data){ const r = await fetch(Sync.url(id), {method: 'PUT', headers: {'Content-Type': 'application/json', 'X-MYD-Key': S.settings.syncKey}, body: JSON.stringify(data)}); if (!r.ok) throw new Error('HTTP ' + r.status); return true; },
+  _t: {},
+  push(v){ if (!Sync.on() || !v) return; clearTimeout(Sync._t[v.id]); Sync._t[v.id] = setTimeout(async () => {
+    try { await Sync.put(v.id, publicView(v)); await Sync.put('showcase', showcaseLocal()); setSyncState(true); } catch(e){ setSyncState(false); } }, 1200); },
+};
+function setSyncState(ok){ const el = $('#syncst'); if (el){ el.textContent = ok ? 'Sincronizado ' + fmtT(new Date().toISOString()) : 'Error de sincronización'; el.className = 'fresh ' + (ok ? '' : 's'); } }
+const b64u = u8 => { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode(...u8.subarray(i, i + 0x8000)); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
+const unb64u = s => { s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; const b = atob(s); return Uint8Array.from(b, c => c.charCodeAt(0)); };
+async function pack(obj){ const bytes = new TextEncoder().encode(JSON.stringify(obj));
+  if (window.CompressionStream){ try { const st = new Blob([bytes]).stream().pipeThrough(new CompressionStream('deflate-raw')); return 'z' + b64u(new Uint8Array(await new Response(st).arrayBuffer())); } catch(e){} }
+  return 'j' + b64u(bytes); }
+async function unpack(s){ const t = s[0], b = unb64u(s.slice(1));
+  if (t === 'z'){ const st = new Blob([b]).stream().pipeThrough(new DecompressionStream('deflate-raw')); return JSON.parse(await new Response(st).text()); }
+  return JSON.parse(new TextDecoder().decode(b)); }
+const baseUrl = () => CONFIG.publicUrl || (location.origin !== 'null' ? location.origin + location.pathname : location.href.split(/[?#]/)[0]);
+async function shareLink(v, withSnap = !Sync.on()){
+  let u = baseUrl() + '?tracking=' + encodeURIComponent(v.id);
+  if (withSnap){ const pv = publicView(v); pv.track = pv.track.filter((_, i, a) => a.length <= 50 || i % Math.ceil(a.length / 50) === 0 || i === a.length - 1); pv.log = pv.log.slice(0, 10); u += '&s=' + await pack(pv); }
+  return u;
+}
+
+/* ============================================================
+   MAPA NÁUTICO (Leaflet + OpenSeaMap)
+   ============================================================ */
+const OSM_ATTR = '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+const TILES = {
+  night: {n: 'Carta nocturna', u: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', o: {subdomains: 'abcd', maxZoom: 19, attribution: OSM_ATTR + ' · © <a href="https://carto.com/attributions">CARTO</a>'}},
+  day: {n: 'Carta diurna', u: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', o: {subdomains: 'abcd', maxZoom: 19, attribution: OSM_ATTR + ' · © <a href="https://carto.com/attributions">CARTO</a>'}},
+  ocean: {n: 'Batimetría', u: 'https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}', o: {maxNativeZoom: 13, maxZoom: 19, attribution: 'Tiles © Esri — GEBCO, NOAA, Garmin'}},
+  sat: {n: 'Satélite', u: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', o: {maxNativeZoom: 18, maxZoom: 19, attribution: 'Tiles © Esri — Maxar, Earthstar Geographics'}},
+};
+const BOAT_SVG = `<svg viewBox="0 0 24 24"><path d="M12 1.5c2.7 2.7 4.2 6.2 4.2 10.4v8.7a1.6 1.6 0 0 1-1.6 1.6H9.4a1.6 1.6 0 0 1-1.6-1.6v-8.7C7.8 7.7 9.3 4.2 12 1.5Z" fill="#E7EEF5" stroke="#07131F" stroke-width="1.1"/><path d="M9.6 12.5h4.8v3.4H9.6z" fill="#3E8FD6"/></svg>`;
+function makeMap(el, {center = [40.4, 3.6], zoom = 6} = {}){
+  if (!window.L){ el.innerHTML = '<div class="nomap">No se pudo cargar la carta náutica. Compruebe la conexión a Internet.</div>'; return null; }
+  const map = L.map(el, {zoomControl: false, worldCopyJump: true, attributionControl: true, tap: true}).setView(center, zoom);
+  map.attributionControl.setPrefix('<a href="https://leafletjs.com">Leaflet</a>');
+  L.control.zoom({position: 'bottomright'}).addTo(map);
+  const bases = {}; for (const k in TILES){ const l = L.tileLayer(TILES[k].u, TILES[k].o); l._k = k; bases[TILES[k].n] = l; }
+  (bases[TILES[ls.get('myd.base')]?.n] || bases[TILES.night.n]).addTo(map);
+  const sea = L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', {maxZoom: 19, attribution: '© <a href="https://www.openseamap.org">OpenSeaMap</a>'});
+  if (ls.get('myd.seamark') !== '0') sea.addTo(map);
+  L.control.layers(bases, {'Balizamiento OpenSeaMap': sea}, {position: 'topright'}).addTo(map);
+  map.on('baselayerchange', e => ls.set('myd.base', e.layer._k));
+  map.on('overlayadd overlayremove', e => { if (e.layer === sea) ls.set('myd.seamark', e.type === 'overlayadd' ? '1' : '0'); });
+  map.createPane('grat').style.zIndex = 350;
+  graticule(map); coordBox(map); nmScale(map);
+  return map;
+}
+function nmScale(map){ const C = L.Control.extend({options: {position: 'bottomleft'}, onAdd(){ const d = L.DomUtil.create('div', 'nm-scale');
+  const u = () => { const s = map.getSize(); if (!s.x) return; const y = s.y / 2; const a = map.containerPointToLatLng([0, y]), b = map.containerPointToLatLng([100, y]);
+    const per = dist({lat: a.lat, lng: a.lng}, {lat: b.lat, lng: b.lng}) || 1; const nice = [.05,.1,.2,.5,1,2,5,10,20,50,100,200,500].find(n => n / per * 100 >= 45) || 500;
+    d.innerHTML = `<i style="width:${Math.round(nice / per * 100)}px"></i><span>${nice < 1 ? String(nice).replace('.', ',') : nice} NM</span>`; };
+  map.on('moveend zoomend resize', u); setTimeout(u, 50); return d; }}); new C().addTo(map); }
+function coordBox(map){ const C = L.Control.extend({options: {position: 'bottomleft'}, onAdd(){ const d = L.DomUtil.create('div', 'coord');
+  const f = ll => d.textContent = `${ddm(ll.lat, 1)}  ${ddm(ll.lng, 0)}`; map.on('mousemove', e => f(e.latlng)); map.on('move', () => f(map.getCenter())); setTimeout(() => f(map.getCenter()), 50); return d; }}); new C().addTo(map); }
+function graticule(map){ const g = L.layerGroup().addTo(map);
+  const draw = () => { g.clearLayers(); const z = map.getZoom(); const step = z <= 4 ? 10 : z <= 6 ? 2 : z <= 7 ? 1 : z <= 9 ? 1 / 3 : z <= 11 ? 1 / 6 : 1 / 12;
+    const b = map.getBounds().pad(.3); const o = {color: '#8CC0EE', weight: .7, opacity: .14, interactive: false, pane: 'grat'};
+    for (let la = Math.floor(b.getSouth() / step) * step; la <= b.getNorth(); la += step) g.addLayer(L.polyline([[la, b.getWest()], [la, b.getEast()]], o));
+    for (let lo = Math.floor(b.getWest() / step) * step; lo <= b.getEast(); lo += step) g.addLayer(L.polyline([[b.getSouth(), lo], [b.getNorth(), lo]], o)); };
+  map.on('moveend', draw); draw(); }
+const boatIcon = (cog = 0, cls = '') => L.divIcon({className: 'boat-ic ' + cls, iconSize: [44, 44], iconAnchor: [22, 22], html: `<span class="pulse"></span>${BOAT_SVG.replace('<svg', `<svg style="transform:rotate(${num(cog)}deg)"`)}`});
+const portIcon = main => L.divIcon({className: 'port-ic' + (main ? ' main' : ''), iconSize: [12, 12], iconAnchor: [6, 6], html: '<i></i>'});
+const wpIcon = n => L.divIcon({className: 'wp-ic', iconSize: [22, 22], iconAnchor: [11, 11], html: `<b><span>${n}</span></b>`});
+const LL = p => [num(p.lat), num(p.lng)];
+
+/* ============================================================
+   METEOROLOGÍA EN VIVO (Open-Meteo, sin clave)
+   ============================================================ */
+const wxCache = {};
+async function fetchWx(lat, lng){
+  const k = lat.toFixed(1) + ',' + lng.toFixed(1); const c = wxCache[k]; if (c && Date.now() - c.t < 20 * 60000) return c.d;
+  const q = `latitude=${lat.toFixed(3)}&longitude=${lng.toFixed(3)}&timezone=auto`;
+  const [m, f] = await Promise.all([
+    fetch(`https://marine-api.open-meteo.com/v1/marine?${q}&current=wave_height,wave_direction,wave_period,sea_surface_temperature`).then(r => r.ok ? r.json() : null).catch(() => null),
+    fetch(`https://api.open-meteo.com/v1/forecast?${q}&current=wind_speed_10m,wind_direction_10m,wind_gusts_10m,temperature_2m&hourly=wind_speed_10m,wind_direction_10m&forecast_hours=12&wind_speed_unit=kn`).then(r => r.ok ? r.json() : null).catch(() => null)]);
+  if (!m && !f) return null;
+  const d = {wave: m?.current?.wave_height, wdir: m?.current?.wave_direction, period: m?.current?.wave_period, sst: m?.current?.sea_surface_temperature,
+    wind: f?.current?.wind_speed_10m, dir: f?.current?.wind_direction_10m, gust: f?.current?.wind_gusts_10m, air: f?.current?.temperature_2m,
+    hours: (f?.hourly?.time || []).map((t, i) => ({t, kn: f.hourly.wind_speed_10m[i], dir: f.hourly.wind_direction_10m[i]}))};
+  wxCache[k] = {t: Date.now(), d}; return d;
+}
+const arrow = (d, sz = 14) => `<svg width="${sz}" height="${sz}" viewBox="0 0 24 24" style="transform:rotate(${num(d) + 180}deg)" aria-hidden="true"><path d="M12 3l5 14-5-3-5 3z" fill="currentColor"/></svg>`;
+function wxHTML(w, sea){
+  let h = '';
+  if (w && (w.wind != null || w.wave != null)){
+    const bf = w.wind != null ? beaufort(w.wind) : null;
+    h += `<div class="wx">
+      <div><small>VIENTO</small><b>${w.wind != null ? Math.round(w.wind) : '—'}<u>kn</u></b><em>${w.dir != null ? arrow(w.dir) + ' ' + dirName(w.dir) + ' · ' + MEDWIND(w.dir) : ''}</em><em>${bf ? 'F' + bf.f + ' ' + bf.name : ''}${w.gust ? ' · rachas ' + Math.round(w.gust) : ''}</em></div>
+      <div><small>OLA</small><b>${w.wave != null ? fmtN(w.wave, 1) : '—'}<u>m</u></b><em>${w.period ? fmtN(w.period, 0) + ' s' : ''}${w.wdir != null ? ' · de ' + dirName(w.wdir) : ''}</em><em>${w.wave != null ? douglas(w.wave) : ''}</em></div>
+      <div><small>AGUA</small><b>${w.sst != null ? Math.round(w.sst) : '—'}<u>°C</u></b><em>${w.air != null ? 'Aire ' + Math.round(w.air) + ' °C' : ''}</em></div></div>`;
+    if (w.hours?.length){ const mx = Math.max(15, ...w.hours.map(x => x.kn));
+      h += `<div class="wbars" aria-label="Previsión de viento 12 horas">${w.hours.map(x => `<div title="${fmtT(x.t)} · ${Math.round(x.kn)} kn ${dirName(x.dir)}"><i class="${x.kn >= 20 ? 'hi' : ''}" style="height:${Math.max(6, x.kn / mx * 40)}px"></i>${new Date(x.t).getHours()}</div>`).join('')}</div>
+      <p class="hint" style="margin-top:6px">Previsión de viento (kn) para las próximas 12 h · modelo Open-Meteo en la zona de navegación.</p>`; }
+  } else h += `<p class="hint" style="margin-top:10px">Parte meteorológico en vivo no disponible en este momento.</p>`;
+  if (sea && (sea.wind || sea.note || sea.bf != null)) h += `<div class="cap"><b>Parte del patrón${sea.t ? ' · ' + fmtT(sea.t) : ''}:</b> ${sea.bf != null && sea.bf !== '' ? 'Fuerza ' + esc(sea.bf) + ' Beaufort' : ''}${sea.wave ? ', ola ' + fmtN(sea.wave, 1) + ' m' : ''}${sea.wind ? ', viento ' + esc(sea.wind) : ''}. ${esc(sea.note || '')}</div>`;
+  return h;
+}
+
+/* ============================================================
+   ROUTER
+   ============================================================ */
+const app = $('#app'); let VIEW = {cleanup: []};
+const Q = () => new URLSearchParams(location.search);
+if (Q().get('embed') === '1') document.body.classList.add('embed');
+function teardown(){ VIEW.cleanup.forEach(f => { try { f(); } catch(e){} }); VIEW = {cleanup: []}; }
+function go(h){ const q = Q(); q.delete('tracking'); q.delete('t'); q.delete('s'); const qs = q.toString(); history.pushState(null, '', location.pathname + (qs ? '?' + qs : '') + h); route(); }
+function goTrack(id){ history.pushState(null, '', location.pathname + '?tracking=' + encodeURIComponent(id)); route(); }
+document.addEventListener('click', e => { const a = e.target.closest('[data-go]'); if (a){ e.preventDefault(); go(a.dataset.go); } });
+window.addEventListener('popstate', route);
+window.addEventListener('hashchange', route);
+function setMetaRobots(noindex){ let m = $('meta[name=robots]'); if (!m){ m = document.createElement('meta'); m.name = 'robots'; document.head.appendChild(m); } m.content = noindex ? 'noindex,follow' : 'index,follow'; }
+const ICON = {
+  lock: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
+  map: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg>',
+  pin: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12Z"/><circle cx="12" cy="10" r="2.5"/></svg>',
+  wa: '<svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.2 2.2 2.2 0 0 0 .1-1.3c0-.1-.2-.2-.5-.3Z"/></svg>',
+  phone: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z"/></svg>',
+  shield: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5z"/><path d="m9 12 2 2 4-4"/></svg>',
+  info: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>',
+  ok: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+  dot: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/></svg>',
+  x: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+  share: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg>',
+  cal: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',
+  doc: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>',
+  gear: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg>',
+  plus: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  out: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>',
+  ruler: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.3 8.7 8.7 21.3a1 1 0 0 1-1.4 0l-4.6-4.6a1 1 0 0 1 0-1.4L15.3 2.7a1 1 0 0 1 1.4 0l4.6 4.6a1 1 0 0 1 0 1.4Z"/><path d="m7.5 10.5 2 2M10.5 7.5l2 2M13.5 4.5l2 2M4.5 13.5l2 2"/></svg>',
+  wp: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 22 12 12 22 2 12z"/></svg>',
+  fit: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 8V3h5M21 8V3h-5M3 16v5h5M21 16v5h-5"/></svg>',
+  home: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>',
+  boat: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1.5c2.7 2.7 4.2 6.2 4.2 10.4v8.7a1.6 1.6 0 0 1-1.6 1.6H9.4a1.6 1.6 0 0 1-1.6-1.6v-8.7C7.8 7.7 9.3 4.2 12 1.5Z"/></svg>',
+};
+function setNav(k){
+  const nav = $('#nav');
+  if (k === 'client'){
+    nav.innerHTML = `<a href="/" title="Volver a mallorcayachtdelivery.com">${ICON.home}</a><a class="call" href="tel:${CONFIG.phone}" aria-label="Llamar a la oficina">${ICON.phone}<span class="t">Llamar</span></a><a class="wa" href="https://wa.me/${CONFIG.wa}" target="_blank" rel="noopener" aria-label="WhatsApp">${ICON.wa}<span class="t">WhatsApp</span></a>`;
+    return; }
+  nav.innerHTML = `<a href="#/" data-go="#/" data-k="hist">${ICON.map}<span class="t">Historial</span></a><a href="#/seguir" data-go="#/seguir" data-k="track">${ICON.pin}<span class="t">Seguir mi barco</span></a><a href="#/capitan" data-go="#/capitan" data-k="cap">${ICON.lock}<span class="t">Capitán</span></a><a href="/" title="Volver a mallorcayachtdelivery.com">${ICON.home}<span class="t">Web</span></a>`;
+  $$('a', nav).forEach(a => a.dataset.k === k ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current'));
+}
+function route(){
+  teardown(); $('#dlg').open && $('#dlg').close(); window.scrollTo(0, 0);
+  const q = Q(); const t = (q.get('tracking') || q.get('t') || '').trim().toUpperCase();
+  if (t){ setMetaRobots(true); return viewTrack(t, q.get('s')); }
+  if (location.hash.startsWith('#/capitan') || q.has('admin')){ setMetaRobots(true); return viewAdmin(); }
+  setMetaRobots(false);
+  if (location.hash.startsWith('#/seguir')) return viewLookup();
+  return viewShowcase();
+}
+function fabHTML(){ return `<div class="fab"><a class="w" href="https://wa.me/${CONFIG.wa}?text=${encodeURIComponent('Hola, quiero presupuesto para trasladar mi barco')}" target="_blank" rel="noopener" aria-label="Escribir por WhatsApp">${ICON.wa.replace('17', '24').replace('17', '24')}</a><a class="c" href="tel:${CONFIG.phone}" aria-label="Llamar al ${CONFIG.phoneHuman}">${ICON.phone}</a></div>`; }
+function footHTML(){ return `<footer class="ft"><div class="wrap"><span>© ${new Date().getFullYear()} Mallorca Yacht Delivery · Palma de Mallorca · <a href="tel:${CONFIG.phone}">${CONFIG.phoneHuman}</a></span><span><a href="${CONFIG.site}/#cotizar">Pedir presupuesto</a> · <a href="${CONFIG.site}/aviso-legal/">Aviso legal</a> · <a href="${CONFIG.site}/privacidad/">Privacidad</a> · <a href="${CONFIG.site}">mallorcayachtdelivery.com</a></span></div></footer>`; }
+
+/* ============================================================
+   VISTA 1 · ESCAPARATE PÚBLICO
+   ============================================================ */
+function viewShowcase(){
+  setNav('hist');
+  let data = showcaseLocal();
+  try { const emb = JSON.parse($('#myd-showcase').textContent.trim() || 'null'); if (emb?.voyages?.length && !ss.get('myd.admin')) data = emb; } catch(e){}
+  const st = {filter: 'all', year: 'all', sel: null};
+  app.innerHTML = `
+  <div class="sc">
+    <section class="sc-hero">
+      <div class="wrap">
+        <div class="row sb"><span class="eyebrow">Cuaderno de entregas · Mediterráneo occidental</span><span id="demoTag"></span></div>
+        <h1><b>Cada milla,</b><br>documentada.</h1>
+        <p class="sub">Travesías completadas por nuestra tripulación profesional: de la península, la Costa Azul y las islas hasta Mallorca. Rutas, tiempos y el informe del patrón de cada entrega.</p>
+        <div id="demoNote"></div>
+        <div class="kpis" id="kpis"></div>
+        <div class="live-strip" id="live"></div>
+      </div>
+    </section>
+    <section class="sc-main wrap">
+      <div class="sc-map card map-wrap"><div id="map" class="map" role="region" aria-label="Carta náutica con las rutas completadas"></div></div>
+      <div class="sc-list">
+        <div class="filters"><div class="chips" id="fchips" role="group" aria-label="Filtrar por origen"></div><select class="in" id="fyear" aria-label="Año"></select></div>
+        <div class="dlist" id="dlist"></div>
+      </div>
+    </section>
+    <section class="wrap sec">
+      <span class="eyebrow">Tranquilidad para el armador</span>
+      <h2>Su barco, siempre a la vista. Su seguridad, también.</h2>
+      <p class="lead">Durante cada traslado el armador recibe por WhatsApp un enlace privado de seguimiento. Sin apps ni contraseñas.</p>
+      <div class="g-3">
+        <article class="card how"><span class="n">01 · ENLACE PRIVADO</span><h3>Seguimiento en vivo desde el móvil</h3><p>Progreso en millas, hora estimada de llegada, velocidad y notas del patrón, actualizados durante la travesía.</p></article>
+        <article class="card how"><span class="n">02 · ZONA APROXIMADA</span><h3>Privacidad pensada para alta mar</h3><p>Mostramos un área de navegación aproximada con un pequeño retardo. La posición exacta queda solo a bordo y en nuestra oficina.</p></article>
+        <article class="card how"><span class="n">03 · INFORME DE ENTREGA</span><h3>Checklist y bitácora documentados</h3><p>Check-in técnico antes de zarpar, parte meteorológico, bitácora y check-out con informe imprimible al llegar.</p></article>
+      </div>
+    </section>
+    <section class="wrap sec">
+      <div class="g-3" style="margin-top:0">
+        <div class="card how"><span class="n">RUTAS MÁS FRECUENTES</span><div class="bars" id="rbars"></div></div>
+        <div class="card how"><span class="n">PUERTOS CONECTADOS</span><div class="ports" id="ports"></div></div>
+        <div class="card how"><span class="n">FLOTA ENTREGADA</span><div class="bars" id="fleet"></div></div>
+      </div>
+      <div class="cta">
+        <div><h2><b>¿Su barco es el siguiente?</b> Lo traemos a Mallorca.</h2><p>Yates a motor de 10 a 20 m. Presupuesto desglosado en menos de 24 horas.</p>
+          <div class="row"><a class="btn p" href="${CONFIG.quoteUrl}">Calcular mi traslado</a><a class="btn wa" href="https://wa.me/${CONFIG.wa}?text=${encodeURIComponent('Hola, quiero presupuesto para trasladar mi barco a Mallorca')}" target="_blank" rel="noopener">${ICON.wa} WhatsApp</a></div></div>
+        <form class="lookup" id="lk"><label class="lbl" for="lkc">¿Tiene un código de seguimiento?</label><div class="row"><input class="in" id="lkc" placeholder="MYD-2610-XXXXXX" autocomplete="off" spellcheck="false"><button class="btn acc" type="submit">Seguir</button></div><p class="hint">Lo encontrará en el enlace que le enviamos por WhatsApp.</p></form>
+      </div>
+    </section>
+    ${footHTML()}
+  </div>${fabHTML()}`;
+  $('#lk').onsubmit = e => { e.preventDefault(); const c = $('#lkc').value.trim().toUpperCase(); if (c) goTrack(c); };
+  const map = makeMap($('#map'), {center: [40.6, 3.6], zoom: 6}); const lay = map ? L.layerGroup().addTo(map) : null; const lines = {};
+  if (map) VIEW.cleanup.push(() => map.remove());
+
+  function render(){
+    const all = data.voyages || [];
+    setMetaRobots(!!data.demo);
+    $('#demoTag').innerHTML = data.demo ? '<span class="pill demo" title="Sustituya estos datos por sus travesías reales desde el panel del capitán">DATOS DE EJEMPLO</span>' : '';
+    $('#demoNote').innerHTML = data.demo ? `<div class="note warn">${ICON.info}<div><b>Demostración de la herramienta.</b> Las travesías, los barcos y las cifras de esta página son un ejemplo para enseñar cómo funciona el seguimiento: <b>no son entregas reales</b>. El historial real se carga desde el panel del capitán.</div></div>` : '';
+    const totNm = all.reduce((a, v) => a + num(v.nm), 0), totH = all.reduce((a, v) => a + num(v.hours), 0);
+    const portsSet = new Map(); all.forEach(v => [v.origin, v.dest].forEach(p => { const k = p.name; const o = portsSet.get(k) || {...p, n: 0}; o.n++; portsSet.set(k, o); }));
+    const avgL = all.length ? all.reduce((a, v) => a + num(v.vessel.length), 0) / all.length : 0;
+    $('#kpis').innerHTML = `<div><small>Millas náuticas entregadas</small><b data-c="${Math.round(totNm)}">0<u>NM</u></b></div><div><small>Travesías completadas</small><b data-c="${all.length}">0</b></div><div><small>Horas de navegación</small><b data-c="${Math.round(totH)}">0<u>h</u></b></div><div><small>Puertos conectados</small><b data-c="${portsSet.size}">0</b></div><div><small>Eslora media</small><b>${fmtN(avgL, 1)}<u>m</u></b></div>`;
+    countUp();
+    $('#live').innerHTML = data.active ? `<span class="pill active"><i></i>EN EL MAR AHORA</span><span>${data.active} ${data.active === 1 ? 'entrega navegando' : 'entregas navegando'} en este momento, con seguimiento privado para cada armador.</span>` : `<span class="pill completed"><i></i>BASE EN PALMA</span><span>Próximas salidas en preparación. Consulte disponibilidad.</span>`;
+    const areas = [['all', 'Todas'], ...Object.entries(AREAS).filter(([k]) => all.some(v => v.origin.area === k))];
+    $('#fchips').innerHTML = areas.map(([k, l]) => `<button class="chip" data-a="${k}" aria-pressed="${st.filter === k}">${l}</button>`).join('');
+    const years = [...new Set(all.map(v => new Date(v.date).getFullYear()))].sort((a, b) => b - a);
+    $('#fyear').innerHTML = `<option value="all">Todos los años</option>` + years.map(y => `<option ${String(y) === st.year ? 'selected' : ''}>${y}</option>`).join('');
+    const list = all.filter(v => (st.filter === 'all' || v.origin.area === st.filter) && (st.year === 'all' || String(new Date(v.date).getFullYear()) === st.year));
+    $('#dlist').innerHTML = list.length ? list.map(v => `
+      <button class="dv" data-id="${esc(v.id)}" aria-expanded="${st.sel === v.id}">
+        <div class="t"><span>${fmtDshort(v.date)}</span><span class="ok">● ENTREGADO</span></div>
+        <h3>${esc(v.origin.name)} <i>→</i> ${esc(v.dest.name)}</h3>
+        <div class="b">${esc(v.vessel.label)}${v.vessel.label !== v.vessel.model ? ' · ' + esc(v.vessel.model) : ''} · ${fmtN(v.vessel.length, 1)} m · ${esc(v.vessel.year)}</div>
+        <div class="k"><span><b>${fmtN(v.nm)}</b> NM</span><span><b>${dur(v.hours)}</b></span><span><b>${fmtN(v.avgKn, 1)}</b> kn med.</span></div>
+        ${st.sel === v.id ? `<div class="more">${v.summary ? `<q>${esc(v.summary)}</q>` : ''}
+          <div class="mini"><span>Mar<b>${v.sea ? 'F' + esc(v.sea.bf) + ' · ' + fmtN(v.sea.wave, 1) + ' m' : '—'}</b></span><span>Viento<b>${esc(v.sea?.wind || '—')}</b></span><span>Tripulación<b>${num(v.crew, 1)} pers.</b></span></div>
+          <span class="tag">Ref. ${esc(v.id)} · llegada ${fmtDT(v.arrived)}</span></div>` : ''}
+      </button>`).join('') : '<div class="empty">No hay travesías con estos filtros.</div>';
+    $('#rbars').innerHTML = (() => { const m = {}; all.forEach(v => { const k = v.origin.name + ' → ' + v.dest.name; m[k] = (m[k] || 0) + 1; }); const arr = Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 5); const mx = arr[0]?.[1] || 1;
+      return arr.map(([k, n]) => `<div><span>${esc(k)}</span><b>${n}×</b><i style="--w:${n / mx * 100}%"></i></div>`).join(''); })();
+    $('#ports').innerHTML = [...portsSet.values()].sort((a, b) => b.n - a.n).map(p => `<span><b>${esc(p.name)}</b> · ${p.n}</span>`).join('');
+    $('#fleet').innerHTML = (() => { const b = [['10–13 m', 10, 13], ['13–16 m', 13, 16], ['16–18 m', 16, 18], ['18–20 m', 18, 20.5]]; const c = b.map(([l, a, z]) => [l, all.filter(v => v.vessel.length >= a && v.vessel.length < z).length]); const mx = Math.max(1, ...c.map(x => x[1]));
+      return c.map(([l, n]) => `<div><span>${l}</span><b>${n}</b><i style="--w:${n / mx * 100}%"></i></div>`).join(''); })();
+    drawMap(list, portsSet);
+  }
+  function drawMap(list, portsSet){
+    if (!map) return; lay.clearLayers(); Object.keys(lines).forEach(k => delete lines[k]);
+    const bounds = [];
+    list.forEach(v => { const P = [v.origin, ...v.waypoints, v.dest].map(LL); bounds.push(...P); const on = st.sel === v.id;
+      const ln = L.polyline(P, {color: on ? '#5BE39A' : '#8CC0EE', weight: on ? 3 : 1.6, opacity: on ? 1 : .55, className: 'rt', smoothFactor: 1}).addTo(lay);
+      if (on) L.polyline(P, {color: '#fff', weight: 3, opacity: .9, className: 'rt rt-flow', interactive: false}).addTo(lay);
+      ln.bindTooltip(`${esc(v.origin.name)} → ${esc(v.dest.name)} · ${fmtN(v.nm)} NM`, {sticky: true});
+      ln.on('click', () => select(v.id, true)); lines[v.id] = ln; });
+    [...portsSet.values()].forEach(p => { const m = L.marker(LL(p), {icon: portIcon(p.name === 'Palma'), keyboard: false}).addTo(lay);
+      m.bindTooltip(esc(p.name), {permanent: p.n >= 2 || p.name === 'Palma', direction: 'right', className: 'plain', offset: [6, 0]}); });
+    if (st.sel && lines[st.sel]) map.fitBounds(lines[st.sel].getBounds(), {padding: [40, 40], maxZoom: 9});
+    else if (bounds.length) map.fitBounds(bounds, {padding: [30, 30], maxZoom: 8});
+  }
+  function select(id, fromMap){ st.sel = st.sel === id && !fromMap ? null : id; render(); if (fromMap){ const el = $(`.dv[data-id="${CSS.escape(id)}"]`); el?.scrollIntoView({block: 'nearest', behavior: 'smooth'}); } }
+  $('#dlist').onclick = e => { const b = e.target.closest('.dv'); if (b) select(b.dataset.id); };
+  $('#fchips').onclick = e => { const b = e.target.closest('[data-a]'); if (b){ st.filter = b.dataset.a; st.sel = null; render(); } };
+  $('#fyear').onchange = e => { st.year = e.target.value; st.sel = null; render(); };
+  render(); setTimeout(() => map?.invalidateSize(), 60);
+  if (Sync.on() && !ss.get('myd.admin')) Sync.pull('showcase').then(r => { if (r?.voyages){ data = r; render(); } }).catch(() => {});
+}
+function countUp(){ $$('[data-c]').forEach(el => { const to = +el.dataset.c, u = el.querySelector('u')?.outerHTML || ''; const t0 = performance.now(), D = 1100;
+  const f = t => { const k = Math.min(1, (t - t0) / D), e = 1 - Math.pow(1 - k, 3); el.innerHTML = fmtN(Math.round(to * e)) + u; if (k < 1) requestAnimationFrame(f); }; requestAnimationFrame(f); }); }
+
+/* ============================================================
+   VISTA 2 · BUSCAR CÓDIGO
+   ============================================================ */
+function viewLookup(){
+  setNav('track');
+  const demo = S.settings.demo ? S.voyages.filter(v => v.status !== 'completed').map(v => v.id) : [];
+  app.innerHTML = `<div class="login"><form class="card" id="lk2">
+    <span class="eyebrow">Seguimiento para armadores</span><h1>Siga su barco en directo</h1>
+    <p class="mute" style="font-size:14px">Introduzca el código de seguimiento que le enviamos por WhatsApp o abra directamente el enlace recibido.</p>
+    <input class="in mono" id="lkc2" placeholder="MYD-2610-XXXXXX" autocomplete="off" spellcheck="false" style="text-transform:uppercase;font-size:17px;padding:14px" aria-label="Código de seguimiento">
+    <button class="btn p" type="submit">Ver mi travesía</button>
+    ${demo.length ? `<div class="note warn">${ICON.info}<div><b>Modo demostración.</b> Pruebe con: ${demo.map(id => `<a href="?tracking=${id}" class="mono" style="color:var(--fg)">${id}</a>`).join(', ')}</div></div>` : ''}
+    <p class="hint">¿No tiene código? Escríbanos al <a href="https://wa.me/${CONFIG.wa}" style="color:var(--acc)">${CONFIG.phoneHuman}</a>.</p></form></div>`;
+  $('#lk2').onsubmit = e => { e.preventDefault(); const c = $('#lkc2').value.trim().toUpperCase(); if (c) goTrack(c); };
+  $('#lkc2').focus();
+}
+
+/* ============================================================
+   VISTA 3 · SEGUIMIENTO DEL ARMADOR
+   ============================================================ */
+async function viewTrack(id, snap){
+  setNav('client');
+  app.innerHTML = `<div class="split"><div class="map-wrap"><div id="map" class="map" role="region" aria-label="Carta náutica con la zona de navegación"></div><div class="mfloat"><button class="btn sm" id="bFit">${ICON.fit} Ruta</button><button class="btn sm" id="bBoat">${ICON.boat} Barco</button></div></div><aside class="side" id="side"><div class="empty">Cargando travesía…</div></aside></div>`;
+  const map = makeMap($('#map')); const lay = map ? L.layerGroup().addTo(map) : null; if (map) VIEW.cleanup.push(() => map.remove());
+  let pv = null, src = '', first = true, wx = null, wxT = 0;
+  async function load(){
+    const v = byId(id); if (v) return {pv: publicView(v), src: 'local'};
+    if (Sync.on()){ try { const r = await Sync.pull(id); if (r?.id) return {pv: r, src: 'live'}; } catch(e){} }
+    if (snap){ try { const r = await unpack(snap); if (r && String(r.id).toUpperCase() === id) return {pv: r, src: 'snap'}; } catch(e){} }
+    return null;
+  }
+  async function tick(){
+    const r = await load();
+    if (!r){ if (first) notFound(); return; }
+    pv = r.pv; src = r.src; renderSide(); drawMap(); first = false;
+    const c = pv.zone || (pv.status === 'completed' ? pv.dest : pv.origin);
+    if (Date.now() - wxT > 20 * 60000){ wxT = Date.now(); fetchWx(num(c.lat), num(c.lng)).then(w => { wx = w; const el = $('#wxb'); if (el) el.innerHTML = wxHTML(wx, pv.sea); }).catch(() => {}); }
+  }
+  function notFound(){ $('#side').innerHTML = `<div class="cv"><span class="eyebrow">Código ${esc(id)}</span><h1 style="font-size:24px">No encontramos esta travesía</h1>
+    <p class="mute">Compruebe el código o pida al patrón un enlace actualizado. Si la travesía aún no ha comenzado, el seguimiento se activará el día de la salida.</p>
+    <a class="btn wa" href="https://wa.me/${CONFIG.wa}?text=${encodeURIComponent('Hola, no puedo abrir el seguimiento ' + id)}" target="_blank" rel="noopener">${ICON.wa} Pedir enlace por WhatsApp</a>
+    <button class="btn" data-go="#/seguir">Introducir otro código</button></div>`; }
+  function renderSide(){
+    const p = pv, V = p.vessel || {}, pct = p.totalNm ? clamp(p.doneNm / p.totalNm, 0, 1) : 0, now = Date.now();
+    const age = p.last ? (now - Date.parse(p.last)) / 60000 : Infinity; const fr = age < 50 ? '' : age < 150 ? 'w' : 's';
+    const etaIn = p.eta ? (Date.parse(p.eta) - now) / 3.6e6 : NaN;
+    const stLbl = {active: ['active', 'EN NAVEGACIÓN'], planned: ['planned', 'SALIDA PROGRAMADA'], completed: ['completed', 'ENTREGADO']}[p.status] || ['', String(p.status).toUpperCase()];
+    const ckOk = (p.checks || []).filter(c => c.ok).length, ckN = (p.checks || []).length;
+    let inst = '';
+    if (p.status === 'active') inst = `<div class="inst">
+      <div class="hl"><small>Velocidad</small><b>${num(p.sog)}<u>kn</u></b><em>media ${fmtN(p.avgKn, 1)} kn</em></div>
+      <div><small>Rumbo</small><b>${String(num(p.cog)).padStart(3, '0')}<u>°</u></b><em>${dirName(num(p.cog))}</em></div>
+      <div><small>ETA</small><b>${fmtT(p.eta)}</b><em>${etaIn > 0 ? 'en ' + dur(etaIn) : 'inminente'}</em></div>
+      <div><small>Navegadas</small><b>${fmtN(p.doneNm)}<u>NM</u></b><em>de ${fmtN(p.totalNm)} NM</em></div>
+      <div><small>Restantes</small><b>${fmtN(Math.max(0, p.totalNm - p.doneNm))}<u>NM</u></b><em>${Math.round(pct * 100)} % del total</em></div>
+      <div><small>En el mar</small><b>${dur((now - Date.parse(p.depart)) / 3.6e6)}</b><em>desde ${fmtT(p.depart)}</em></div></div>`;
+    else if (p.status === 'planned'){ const tl = (Date.parse(p.depart) - now) / 3.6e6; inst = `<div class="inst">
+      <div class="hl"><small>Salida en</small><b>${tl > 0 ? dur(tl) : 'hoy'}</b><em>${fmtDT(p.depart)}</em></div>
+      <div><small>Distancia</small><b>${fmtN(p.totalNm)}<u>NM</u></b><em>ruta planificada</em></div>
+      <div><small>Duración est.</small><b>${dur(Date.parse(p.eta) - Date.parse(p.depart) > 0 ? (Date.parse(p.eta) - Date.parse(p.depart)) / 3.6e6 : NaN)}</b><em>llegada ${fmtT(p.eta)}</em></div></div>`; }
+    else { const h = num(p.report?.hours) || (Date.parse(p.arrived) - Date.parse(p.depart)) / 3.6e6; inst = `<div class="inst">
+      <div class="hl"><small>Entregado</small><b>${fmtT(p.arrived)}</b><em>${fmtD(p.arrived)}</em></div>
+      <div><small>Distancia</small><b>${fmtN(p.report?.nm || p.totalNm)}<u>NM</u></b><em>${esc(p.origin.name)} → ${esc(p.dest.name)}</em></div>
+      <div><small>Duración</small><b>${dur(h)}</b><em>media ${fmtN((p.report?.nm || p.totalNm) / (h || 1), 1)} kn</em></div></div>`; }
+    $('#side').innerHTML = `<div class="cv">
+      <section>
+        <div class="row sb"><span class="pill ${stLbl[0]}"><i></i>${stLbl[1]}</span><span class="mono dim" style="font-size:11.5px">${esc(p.id)}</span></div>
+        <h1>${esc(V.name || V.model)}</h1>
+        <p class="sub">${[V.model !== V.name ? V.model : '', V.length ? fmtN(V.length, 1) + ' m' : '', V.year, V.flag ? 'Pabellón ' + V.flag : ''].filter(Boolean).map(esc).join(' · ')}</p>
+        <div class="od"><div><small>SALIDA</small><b>${esc(p.origin.name)}</b><span>${fmtDT(p.depart)}</span></div>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          <div class="r"><small>${p.status === 'completed' ? 'LLEGADA' : 'LLEGADA ESTIMADA'}</small><b>${esc(p.dest.name)}</b><span>${fmtDT(p.status === 'completed' ? p.arrived : p.eta)}</span></div></div>
+      </section>
+      <section class="card prog"><div class="row sb"><span class="tag">Progreso de la travesía</span><b>${fmtN(p.doneNm)} / ${fmtN(p.totalNm)} NM</b></div>
+        <div class="track" style="--p:${(pct * 100).toFixed(1)}%"><span class="a"></span><span class="z"></span><span class="done"></span><span class="ship" style="color:var(--ok)">${ICON.boat}</span></div>
+        <div class="ends"><span>${esc(p.origin.name)}</span><span>${Math.round(pct * 100)} %</span><span>${esc(p.dest.name)}</span></div></section>
+      ${inst}
+      ${p.status === 'active' ? `<div class="row sb"><span class="fresh ${fr}"><i></i>Última posición publicada ${ago(p.last)}</span><span class="fresh" id="upd">Actualización automática</span></div>
+        ${fr === 's' ? `<div class="note warn">${ICON.info}<div>Sin posiciones recientes. En alta mar es habitual perder cobertura móvil durante unas horas; el patrón actualizará en cuanto sea posible. Ante cualquier duda, llame a la oficina.</div></div>` : ''}
+        <div class="note">${ICON.shield}<div><b>Privacidad en alta mar.</b> Por seguridad, mostramos una zona aproximada de <b>${num(p.privacy?.radius)} NM</b> de radio${num(p.privacy?.delayMin) ? ` con un retardo de ${num(p.privacy.delayMin)} min` : ''}. La posición exacta solo la conocen la tripulación y nuestra oficina.</div></div>` : ''}
+      ${src === 'snap' ? `<div class="note warn">${ICON.info}<div><b>Instantánea del ${fmtDT(p.gen)}.</b> Este enlace muestra la situación en el momento en que se envió. Pida al patrón un enlace actualizado por WhatsApp.</div></div>` : ''}
+      ${p.status === 'completed' && p.report?.summary ? `<section class="card blk"><h3>Informe de entrega</h3><p style="margin-top:10px;font-size:14.5px">${esc(p.report.summary)}</p></section>` : ''}
+      <section class="card blk"><h3>Estado del mar <span>${p.status === 'completed' ? 'en destino' : p.zone ? 'zona de navegación' : 'puerto de salida'}</span></h3><div id="wxb">${wx ? wxHTML(wx, p.sea) : '<p class="hint" style="margin-top:10px">Consultando parte meteorológico…</p>'}</div></section>
+      <section class="card blk"><h3>Bitácora del patrón <span>${(p.log || []).length} entradas</span></h3>
+        ${(p.log || []).length ? `<ul class="tl">${p.log.map(l => `<li class="${esc(LOGTYPES[l.type]?.[1] || '')}"><time>${fmtDT(l.t)} · ${esc(LOGTYPES[l.type]?.[0] || 'Nota')}</time><p>${esc(l.text)}</p></li>`).join('')}</ul>` : '<p class="hint" style="margin-top:10px">El patrón publicará aquí las novedades de la travesía.</p>'}</section>
+      <section class="card blk"><h3>Checklist de seguridad <span>${ckOk}/${ckN}</span></h3><div class="meter" style="--p:${ckN ? ckOk / ckN * 100 : 0}%"><i></i></div>
+        <ul class="ck">${(p.checks || []).map(c => `<li class="${c.ok ? 'y' : 'n'}">${c.ok ? ICON.ok : ICON.dot}<span>${esc(c.l)}</span></li>`).join('')}</ul></section>
+      <section class="card blk"><h3>Tripulación profesional</h3><div class="crew">${(p.crew || []).map(c => `<div><b>${esc(c.role)}</b><span>${esc(c.cert)}</span></div>`).join('')}</div></section>
+      <div class="acts">
+        <a class="btn wa wide" href="https://wa.me/${CONFIG.wa}?text=${encodeURIComponent(`Hola, consulta sobre la travesía ${p.id} (${V.name || V.model})`)}" target="_blank" rel="noopener">${ICON.wa} Hablar con la oficina</a>
+        <button class="btn" id="aShare">${ICON.share} Compartir</button>
+        ${p.status !== 'completed' ? `<button class="btn" id="aIcs">${ICON.cal} Calendario</button>` : `<button class="btn" id="aRep">${ICON.doc} Informe</button>`}
+      </div>
+      <p class="cv-foot">Mallorca Yacht Delivery · Traslados náuticos profesionales<br><a href="tel:${CONFIG.phone}">${CONFIG.phoneHuman}</a> · <a href="${CONFIG.site}">mallorcayachtdelivery.com</a></p>
+    </div>`;
+    $('#aShare').onclick = async () => { const url = location.href; const t = `Seguimiento de ${V.name || V.model} · ${p.origin.name} → ${p.dest.name}`; if (navigator.share){ try { await navigator.share({title: t, url}); } catch(e){} } else copy(url); };
+    $('#aIcs') && ($('#aIcs').onclick = () => icsDownload(p));
+    $('#aRep') && ($('#aRep').onclick = () => printReport(p, true));
+  }
+  function drawMap(){
+    if (!map) return; lay.clearLayers(); const p = pv; const P = [p.origin, ...(p.waypoints || []), p.dest].map(x => ({lat: num(x.lat), lng: num(x.lng)}));
+    L.polyline(P.map(LL), {color: '#8CC0EE', weight: 2, opacity: .7, dashArray: '6 8', className: 'rt'}).addTo(lay);
+    if (p.doneNm > 0){ const c = cum(P); const done = []; for (let i = 0; i < P.length; i++){ if (c[i] < p.doneNm) done.push(LL(P[i])); else break; } done.push(LL(pointAt(P, p.doneNm)));
+      L.polyline(done, {color: '#5BE39A', weight: 3.5, opacity: .95, className: 'rt'}).addTo(lay); }
+    if (p.status !== 'completed' && p.track?.length > 1) L.polyline(p.track.map(LL), {color: '#5BE39A', weight: 1.2, opacity: .5, dashArray: '2 5', className: 'rt'}).addTo(lay);
+    if (p.status === 'completed' && p.track?.length > 1) L.polyline(p.track.map(LL), {color: '#5BE39A', weight: 2.5, opacity: .9, className: 'rt'}).addTo(lay);
+    [[p.origin, false], [p.dest, true]].forEach(([q, m]) => L.marker(LL(q), {icon: portIcon(m), keyboard: false}).addTo(lay).bindTooltip(esc(q.name), {permanent: true, direction: 'right', className: 'plain', offset: [6, 0]}));
+    let boat = null;
+    if (p.zone){ const z = p.zone; if (z.r) L.circle(LL(z), {radius: z.r * 1852, color: '#8CC0EE', weight: 1.5, dashArray: '5 6', fillColor: '#3E8FD6', fillOpacity: .14}).addTo(lay);
+      boat = L.marker(LL(z), {icon: boatIcon(p.cog, 'zone'), zIndexOffset: 1000}).addTo(lay).bindPopup(`<b>${esc(p.vessel.name || p.vessel.model)}</b><br>Zona aproximada · radio ${num(z.r)} NM<br>${num(p.sog)} kn · rumbo ${num(p.cog)}°<br><span style="color:var(--mute)">Publicada ${ago(p.last)}</span>`); }
+    else if (p.status === 'completed') boat = L.marker(LL(p.dest), {icon: boatIcon(0), zIndexOffset: 1000}).addTo(lay);
+    else boat = L.marker(LL(p.origin), {icon: boatIcon(courseAt(P, 0)), zIndexOffset: 1000}).addTo(lay);
+    const fitRoute = () => map.fitBounds(L.latLngBounds(P.map(LL)), {padding: [40, 40], maxZoom: 10});
+    $('#bFit').onclick = fitRoute; $('#bBoat').onclick = () => boat && map.setView(boat.getLatLng(), p.zone?.r ? Math.max(8, 11 - Math.round(Math.log2(Math.max(1, p.zone.r)))) : 11);
+    if (first){ fitRoute(); setTimeout(() => map.invalidateSize(), 80); }
+  }
+  await tick();
+  const iv = setInterval(tick, CONFIG.refreshSec * 1000); VIEW.cleanup.push(() => clearInterval(iv));
+  const onSt = e => { if (e.key === CONFIG.storageKey){ try { S = JSON.parse(e.newValue); } catch(_){} tick(); } };
+  window.addEventListener('storage', onSt); VIEW.cleanup.push(() => window.removeEventListener('storage', onSt));
+}
+function icsDownload(p){
+  const z = d => new Date(d).toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
+  const t = p.eta || p.depart; const url = baseUrl() + '?tracking=' + p.id;
+  const ics = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Mallorca Yacht Delivery//Tracker//ES','BEGIN:VEVENT',`UID:${p.id}@mallorcayachtdelivery.com`,`DTSTAMP:${z(Date.now())}`,`DTSTART:${z(t)}`,`DTEND:${z(Date.parse(t) + 3.6e6)}`,
+    `SUMMARY:Llegada de ${(p.vessel.name || p.vessel.model).replace(/[,;]/g, ' ')} a ${p.dest.name}`,`LOCATION:${p.dest.name}`,`DESCRIPTION:Hora estimada sujeta a condiciones de mar. Seguimiento: ${url}`,'END:VEVENT','END:VCALENDAR'].join('\r\n');
+  download(`llegada-${p.id}.ics`, ics, 'text/calendar'); toast('Evento de llegada descargado');
+}
+function printReport(src, isPublic){
+  const p = isPublic ? src : publicView(src); const v = isPublic ? null : src; const h = num(v?.report?.hours || p.report?.hours) || (Date.parse(p.arrived) - Date.parse(p.depart)) / 3.6e6;
+  const row = (k, x) => x ? `<tr><th>${k}</th><td>${x}</td></tr>` : '';
+  $('#print').innerHTML = `<div class="hd"><div><div style="font:600 9pt var(--m);letter-spacing:.2em">MALLORCA YACHT DELIVERY</div><h1>Informe de entrega</h1><div>${esc(p.vessel.name || p.vessel.model)} · ${esc(p.origin.name)} → ${esc(p.dest.name)}</div></div><div style="text-align:right;font:9pt var(--m)">Ref. ${esc(p.id)}<br>${fmtD(new Date().toISOString())}</div></div>
+    <h2>Embarcación</h2><table>${row('Nombre', esc(p.vessel.name))}${row('Modelo', esc([p.vessel.builder, p.vessel.model].filter(Boolean).join(' · ')))}${row('Eslora', p.vessel.length ? fmtN(p.vessel.length, 1) + ' m' : '')}${row('Año', esc(p.vessel.year))}${row('Pabellón', esc(p.vessel.flag))}${v ? row('Motorización', esc(v.vessel.engines)) : ''}</table>
+    <h2>Travesía</h2><table>${row('Salida', esc(p.origin.name) + ' · ' + fmtDT(p.depart))}${row('Llegada', esc(p.dest.name) + ' · ' + fmtDT(p.arrived || p.eta))}${row('Distancia', fmtN(p.report?.nm || p.totalNm) + ' NM')}${row('Duración', dur(h))}${row('Velocidad media', fmtN((p.report?.nm || p.totalNm) / (h || 1), 1) + ' kn')}
+      ${v ? row('Combustible consumido', v.report?.fuelL ? fmtN(v.report.fuelL) + ' L' : '') + row('Horas de motor', v.report?.engineH ? fmtN(v.report.engineH, 1) + ' h' : '') + row('Incidencias', esc(v.report?.incidents || 'Sin incidencias')) : ''}
+      ${row('Tripulación', (p.crew || []).map(c => esc(c.role + (c.cert ? ' (' + c.cert + ')' : ''))).join('<br>'))}</table>
+    ${p.report?.summary ? `<h2>Informe del patrón</h2><p>${esc(p.report.summary)}</p>` : ''}
+    <h2>Checklist de seguridad</h2><table>${(p.checks || []).map(c => `<tr><td style="width:24px">${c.ok ? '✔' : '—'}</td><td>${esc(c.l)}</td></tr>`).join('')}</table>
+    <h2>Bitácora</h2><table>${(v ? [...v.log].sort((a, b) => Date.parse(a.t) - Date.parse(b.t)) : [...(p.log || [])].reverse()).map(l => `<tr><th style="width:28%">${fmtDT(l.t)}</th><td>${esc(l.text)}</td></tr>`).join('')}</table>
+    <div class="sig"><div>Patrón al mando</div><div>Recibido por (armador / representante)</div></div>
+    <p class="foot">Mallorca Yacht Delivery · Blue Mediterranean Yacht Charter SL · CIF B16614042 · Palma de Mallorca · ${CONFIG.phoneHuman} · ${CONFIG.email}</p>`;
+  setTimeout(() => window.print(), 60);
+}
+
+/* ============================================================
+   VISTA 4 · PANEL DEL CAPITÁN
+   ============================================================ */
+const A = {vid: null, tab: 'puente', mode: null, measure: [], watch: null, every: 15, lastSave: 0, wake: null, map: null, lay: null, tmp: null};
+const isAuthed = () => ss.get('myd.admin') === '1';
+async function checkPin(pin){ return S.settings.pinHash ? (await sha(pin)) === S.settings.pinHash : pin === CONFIG.defaultPin; }
+function viewAdmin(){
+  setNav('cap');
+  if (!isAuthed()){
+    app.innerHTML = `<div class="login"><form class="card" id="lg"><span class="eyebrow">Acceso restringido</span><h1>Panel del capitán</h1>
+      <p class="mute" style="font-size:14px">Gestión de travesías, posiciones, bitácora y enlaces de seguimiento.</p>
+      <input class="in pin" id="pin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="12" placeholder="••••" aria-label="PIN">
+      <button class="btn p" type="submit">Entrar</button>
+      ${!S.settings.pinHash ? `<p class="hint">PIN inicial: <b class="mono" style="color:var(--fg)">${CONFIG.defaultPin}</b> (una milla náutica en metros). Cámbielo en Ajustes tras entrar.</p>` : ''}</form></div>`;
+    $('#pin').focus();
+    $('#lg').onsubmit = async e => { e.preventDefault(); if (await checkPin($('#pin').value.trim())){ ss.set('myd.admin', '1'); viewAdmin(); } else { toast('PIN incorrecto', 'bad'); $('#pin').value = ''; } };
+    return;
+  }
+  if (!A.vid || !byId(A.vid)) A.vid = (S.voyages.find(v => v.status === 'active') || S.voyages[0])?.id || null;
+  app.innerHTML = `<div class="adm"><aside class="side" id="aside"></aside><div class="map-wrap"><div id="map" class="map" role="region" aria-label="Carta del capitán"></div>
+    <div class="mtools" id="mtools">
+      <button class="btn sm" data-mode="pos">${ICON.pin} Posición</button><button class="btn sm" data-mode="wp">${ICON.wp} Waypoint</button><button class="btn sm" data-mode="measure">${ICON.ruler} Medir</button><button class="btn sm" data-act="fit">${ICON.fit} Ajustar</button></div>
+    <div class="mhint" id="mhint" hidden></div></div></div>`;
+  A.map = makeMap($('#map')); A.lay = A.map ? L.layerGroup().addTo(A.map) : null;
+  VIEW.cleanup.push(() => { A.map?.remove(); A.map = null; stopGps(); });
+  if (A.map) A.map.on('click', onMapClick);
+  $('#mtools').onclick = e => { const b = e.target.closest('button'); if (!b) return; if (b.dataset.act === 'fit') return fitAdmin(); setMode(A.mode === b.dataset.mode ? null : b.dataset.mode); };
+  const onKey = e => { if (e.key === 'Escape') setMode(null); }; document.addEventListener('keydown', onKey); VIEW.cleanup.push(() => document.removeEventListener('keydown', onKey));
+  const iv = setInterval(() => { renderHead(); S.voyages.filter(v => v.status === 'active').forEach(v => Sync.push(v)); }, 5 * 60000); VIEW.cleanup.push(() => clearInterval(iv));
+  renderSide(); drawAdmin(true); setTimeout(() => A.map?.invalidateSize(), 80);
+}
+const cur = () => byId(A.vid);
+function commit(v, {map = true, head = true, tab = false} = {}){ v.updatedAt = new Date().toISOString(); persist(); Sync.push(v); if (head) renderHead(); if (map) drawAdmin(); if (tab) renderTab(); }
+function setMode(m){ A.mode = m; A.measure = []; if (A.tmp){ A.tmp.remove(); A.tmp = null; }
+  $$('#mtools [data-mode]').forEach(b => b.classList.toggle('on', b.dataset.mode === m));
+  const h = $('#mhint'); const txt = {pos: 'Toque la carta para cargar las coordenadas de la posición', wp: 'Toque la carta para añadir un waypoint a la ruta', measure: 'Toque dos puntos para medir distancia y rumbo', org: 'Toque la carta para fijar el puerto de salida', dst: 'Toque la carta para fijar el puerto de destino'}[m];
+  if (h){ h.hidden = !txt; h.textContent = (txt || '') + ' · Esc para salir'; } }
+function renderSide(){
+  const opts = st => S.voyages.filter(v => v.status === st).sort((a, b) => Date.parse(b.depart) - Date.parse(a.depart)).map(v => `<option value="${v.id}" ${v.id === A.vid ? 'selected' : ''}>${esc(vesselLabel(v))} · ${esc(v.origin.name)} → ${esc(v.dest.name)}</option>`).join('');
+  $('#aside').innerHTML = `<div class="abar"><select class="in" id="vsel" aria-label="Travesía">
+      <optgroup label="En navegación">${opts('active')}</optgroup><optgroup label="Programadas">${opts('planned')}</optgroup><optgroup label="Completadas">${opts('completed')}</optgroup></select>
+      <button class="btn" id="bNew" title="Nueva travesía" aria-label="Nueva travesía">${ICON.plus}</button><button class="btn" id="bSet" title="Ajustes" aria-label="Ajustes">${ICON.gear}</button><button class="btn ghost" id="bOut" title="Salir" aria-label="Cerrar sesión">${ICON.out}</button></div>
+    <div id="ahead"></div>
+    <nav class="tabs" id="tabs" role="tablist">${[['puente','Puente'],['bitacora','Bitácora'],['barco','Barco'],['ruta','Ruta'],['cliente','Cliente'],['check','Checklist'],['cierre','Cierre']].map(([k, l]) => `<button role="tab" data-t="${k}" aria-selected="${A.tab === k}">${l}</button>`).join('')}</nav>
+    <div class="tabc" id="tabc"></div>`;
+  $('#vsel').onchange = e => { A.vid = e.target.value; setMode(null); renderHead(); renderTab(); drawAdmin(true); };
+  $('#bNew').onclick = () => { const v = baseVoyage(); v.vessel.name = 'Nueva embarcación'; S.voyages.push(v); A.vid = v.id; A.tab = 'barco'; persist(); renderSide(); drawAdmin(true); toast('Travesía creada · complete los datos del barco'); };
+  $('#bSet').onclick = openSettings;
+  $('#bOut').onclick = () => { ss.del('myd.admin'); stopGps(); go('#/'); };
+  $('#tabs').onclick = e => { const b = e.target.closest('[data-t]'); if (!b) return; A.tab = b.dataset.t; $$('#tabs button').forEach(x => x.setAttribute('aria-selected', x === b)); renderTab(); };
+  const tc = $('#tabc');
+  tc.addEventListener('change', e => { const el = e.target.closest('[data-f]'); const v = cur(); if (!el || !v) return; let val = el.type === 'checkbox' ? el.checked : el.value;
+    if (el.dataset.t === 'n') val = val === '' ? null : num(val); if (el.dataset.t === 'dt') val = fromLocal(val); setPath(v, el.dataset.f, val); commit(v, {tab: !!el.dataset.re}); if (el.dataset.f === 'vessel.name') renderSideSelectOnly(); });
+  tc.addEventListener('input', e => { const el = e.target; if (el.id === 'prR') $('#prRv').textContent = el.value + ' NM'; if (el.id === 'fuelR') $('#fuelRv').textContent = el.value + ' %'; });
+  tc.addEventListener('click', onTabClick);
+  renderHead(); renderTab();
+}
+function renderSideSelectOnly(){ const v = cur(); const o = $(`#vsel option[value="${v.id}"]`); if (o) o.textContent = `${vesselLabel(v)} · ${v.origin.name} → ${v.dest.name}`; }
+function renderHead(){
+  const v = cur(), el = $('#ahead'); if (!el) return;
+  if (!v){ el.innerHTML = `<div class="empty">No hay travesías. Pulse + para crear la primera.</div>`; return; }
+  const s = stats(v); const lbl = {active: 'EN NAVEGACIÓN', planned: 'PROGRAMADA', completed: 'COMPLETADA'}[v.status];
+  el.innerHTML = `<div class="ahead"><div class="row sb"><span class="pill ${v.status}"><i></i>${lbl}</span><span class="row"><span class="mono dim" style="font-size:11.5px">${v.id}</span>${Sync.on() ? '<span class="fresh" id="syncst"><i></i>Sync</span>' : ''}</span></div>
+    <div><h2>${esc(vesselLabel(v))}</h2><p class="sub">${esc(v.vessel.model)} · ${fmtN(v.vessel.length, 1)} m · ${esc(v.origin.name)} → ${esc(v.dest.name)}</p></div>
+    <div class="inst sm">
+      <div><small>Posición</small><b style="font-size:13px">${s.last ? ddm(s.last.lat, 1) : '—'}</b><em class="mono">${s.last ? ddm(s.last.lng, 0) : 'sin fix'}</em></div>
+      <div class="hl"><small>SOG / COG</small><b>${s.last ? fmtN(s.sog, 1) : '—'}<u>kn</u></b><em>${s.last ? String(Math.round(s.cog)).padStart(3, '0') + '° ' + dirName(s.cog) : '—'}</em></div>
+      <div><small>ETA real</small><b>${fmtT(s.eta)}</b><em>${v.status === 'active' ? fmtN(s.remain, 1) + ' NM rest.' : fmtD(s.eta)}</em></div></div>
+    ${v.status === 'active' ? `<div class="meter" style="--p:${(s.pct * 100).toFixed(1)}%"><i></i></div><div class="row sb hint"><span>${fmtN(s.done, 1)} de ${fmtN(s.total, 1)} NM · ${Math.round(s.pct * 100)} %</span><span>Último fix ${ago(s.last?.t)}</span></div>` : ''}</div>`;
+}
+function renderTab(){
+  const v = cur(), tc = $('#tabc'); if (!tc) return; if (!v){ tc.innerHTML = ''; return; }
+  const s = stats(v); const T = A.tab;
+  const portOpts = sel => PORTS.map(p => `<option value="${p.id}" ${sel === p.id ? 'selected' : ''}>${esc(p.full || p.name)}</option>`).join('') + `<option value="custom" ${!portById(sel) ? 'selected' : ''}>Otro (fijar en la carta)…</option>`;
+  let h = '';
+  if (T === 'puente'){
+    const last = s.last;
+    h = `<div class="grp"><h4>Estado de la travesía</h4><div class="seg" role="group">${[['planned','Programada'],['active','En navegación'],['completed','Entregada']].map(([k, l]) => `<button data-act="status" data-v="${k}" aria-pressed="${v.status === k}">${l}</button>`).join('')}</div></div>
+    <div class="grp"><h4>Posición <span>${v.track.length} registros</span></h4>
+      <div class="row"><button class="btn acc" data-act="gps">${ICON.pin} Fix GPS ahora</button><button class="btn ${A.watch != null ? 'on' : ''}" data-act="gpsauto">${A.watch != null ? '● Auto GPS activo' : 'Auto GPS'}</button>
+        <select class="in" id="gpsEvery" style="width:auto" aria-label="Intervalo">${[5, 10, 15, 30, 60].map(m => `<option value="${m}" ${A.every === m ? 'selected' : ''}>cada ${m} min</option>`).join('')}</select></div>
+      <p class="hint">El Auto GPS registra la posición del móvil o tablet de a bordo y mantiene la pantalla encendida. Requiere conexión HTTPS.</p>
+      <div class="g2"><label class="f"><span>Latitud</span><input class="in mono" id="pLat" placeholder="39 33.82 N" value="${last ? ddm(last.lat, 1).replace('′', "'") : ''}"></label><label class="f"><span>Longitud</span><input class="in mono" id="pLng" placeholder="002 38.07 E" value="${last ? ddm(last.lng, 0).replace('′', "'") : ''}"></label></div>
+      <div class="g3" style="grid-template-columns:1fr 1fr 1.7fr"><label class="f"><span>SOG (kn)</span><input class="in mono" id="pSog" type="number" step="0.1" min="0" value="${last ? last.sog : v.cruiseKn}"></label><label class="f"><span>COG (°)</span><input class="in mono" id="pCog" type="number" min="0" max="359" value="${last ? Math.round(last.cog) : ''}"></label><label class="f"><span>Hora</span><input class="in mono" id="pT" type="datetime-local" value="${toLocal(new Date().toISOString())}"></label></div>
+      <div class="row"><button class="btn p" data-act="addpos">Registrar posición</button><button class="btn" data-act="pick">${ICON.map} Tomar de la carta</button></div>
+      <div class="row"><button class="btn sm" data-act="sim">Simular +30 min</button><button class="btn sm" data-act="undo" ${v.track.length ? '' : 'disabled'}>Deshacer último fix</button></div></div>
+    <div class="sep"></div>
+    <div class="grp"><h4>Parte del patrón <span>${v.sea?.t ? 'publicado ' + ago(v.sea.t) : 'sin publicar'}</span></h4>
+      <div class="g3"><label class="f"><span>Beaufort</span><select class="in" id="sBf">${BF.slice(0, 10).map((b, i) => `<option value="${i}" ${num(v.sea?.bf) === i ? 'selected' : ''}>F${i} ${b[1]}</option>`).join('')}</select></label>
+        <label class="f"><span>Ola (m)</span><input class="in mono" id="sWave" type="number" step="0.1" min="0" value="${v.sea?.wave ?? ''}"></label><label class="f"><span>Viento</span><input class="in" id="sWind" placeholder="NE 12 kn" value="${esc(v.sea?.wind || '')}"></label></div>
+      <label class="f"><span>Nota para el armador</span><input class="in" id="sNote" placeholder="Navegación cómoda, mar de popa…" value="${esc(v.sea?.note || '')}"></label>
+      <button class="btn" data-act="sea">Publicar parte</button></div>
+    <div class="sep"></div>
+    <div class="grp"><h4>Combustible y ETA</h4>
+      <label class="f"><span>Combustible a bordo · <b id="fuelRv" style="color:var(--fg)">${num(v.fuelPct)} %</b></span><input type="range" id="fuelR" min="0" max="100" value="${num(v.fuelPct)}" data-f="fuelPct" data-t="n"></label>
+      ${v.vessel.fuelCap && v.vessel.lph ? `<p class="hint">≈ ${fmtN(v.vessel.fuelCap * num(v.fuelPct) / 100)} L · autonomía ${dur(v.vessel.fuelCap * num(v.fuelPct) / 100 / v.vessel.lph)} a ${v.vessel.lph} L/h (${fmtN(v.vessel.fuelCap * num(v.fuelPct) / 100 / v.vessel.lph * s.spd)} NM). Restan ${fmtN(s.remain)} NM.</p>` : ''}
+      <label class="f"><span>ETA manual (opcional, sustituye al cálculo)</span><input class="in mono" type="datetime-local" data-f="etaManual" data-t="dt" value="${toLocal(v.etaManual)}"></label></div>`;
+  }
+  if (T === 'bitacora'){
+    const L2 = [...v.log].sort((a, b) => Date.parse(b.t) - Date.parse(a.t));
+    h = `<div class="grp"><h4>Nueva entrada</h4>
+      <div class="tmpl">${['Salida de puerto, todo en orden a bordo.','Navegando a velocidad de crucero, parámetros de motor nominales.','Ronda de sala de máquinas sin novedad.','Repostaje completado.','Cambio de guardia. Todo en orden.','Avistamos destino. Preparando maniobra de entrada.'].map(t => `<button data-act="tpl" data-v="${esc(t)}">${esc(t.split(/[,.]/)[0])}</button>`).join('')}</div>
+      <textarea class="in" id="lText" placeholder="Escriba la novedad…" maxlength="600"></textarea>
+      <div class="g2"><label class="f"><span>Tipo</span><select class="in" id="lType">${Object.entries(LOGTYPES).map(([k, [l]]) => `<option value="${k}">${l}</option>`).join('')}</select></label>
+        <label class="sw" style="align-self:end">Visible para el armador<input type="checkbox" id="lPub" checked></label></div>
+      <button class="btn p" data-act="addlog">Añadir a la bitácora</button></div>
+    <div class="grp"><h4>Bitácora <span>${v.log.length} entradas · ${v.log.filter(l => !l.pub).length} privadas</span></h4>
+      ${L2.length ? `<ul class="tl">${L2.map(l => `<li class="${LOGTYPES[l.type]?.[1] || ''}"><time>${fmtDT(l.t)} · ${LOGTYPES[l.type]?.[0] || ''}${l.pub ? '' : '<span class="priv">PRIVADA</span>'}</time><p>${esc(l.text)}</p>
+        <div class="row" style="margin-top:6px"><button class="btn sm ghost" data-act="logpub" data-id="${l.id}">${l.pub ? 'Ocultar al armador' : 'Mostrar al armador'}</button><button class="btn sm ghost danger" data-act="logdel" data-id="${l.id}">Eliminar</button></div></li>`).join('')}</ul>` : '<p class="hint">Sin entradas todavía.</p>'}</div>`;
+  }
+  if (T === 'barco'){
+    const F = (l, f, o = {}) => `<label class="f"><span>${l}</span><input class="in ${o.mono ? 'mono' : ''}" ${o.type ? `type="${o.type}"` : ''} ${o.step ? `step="${o.step}"` : ''} data-f="${f}" ${o.type === 'number' ? 'data-t="n"' : ''} value="${esc(getPath(v, f) ?? '')}" placeholder="${o.ph || ''}"></label>`;
+    h = `<div class="grp"><h4>Embarcación</h4>${F('Nombre', 'vessel.name')}<div class="g2">${F('Modelo', 'vessel.model', {ph: 'Princess F50'})}${F('Astillero', 'vessel.builder')}</div>
+      <div class="g4">${F('Eslora (m)', 'vessel.length', {type: 'number', step: '0.1', mono: 1})}${F('Manga (m)', 'vessel.beam', {type: 'number', step: '0.1', mono: 1})}${F('Año', 'vessel.year', {type: 'number', mono: 1})}${F('Pabellón', 'vessel.flag', {ph: 'ES'})}</div>
+      ${F('Motorización', 'vessel.engines', {ph: '2× Volvo Penta IPS 800'})}<div class="g2">${F('Depósito (L)', 'vessel.fuelCap', {type: 'number', mono: 1})}${F('Consumo crucero (L/h)', 'vessel.lph', {type: 'number', mono: 1})}</div>
+      ${num(v.vessel.length) && (v.vessel.length < 10 || v.vessel.length > 20) ? `<div class="note warn">${ICON.info}<div>Eslora fuera del rango habitual de servicio (10–20 m). Revise tripulación y requisitos.</div></div>` : ''}</div>
+    <div class="grp"><h4>Armador <span>privado · nunca se muestra al público</span></h4>${F('Nombre', 'owner.name')}<div class="g2">${F('Teléfono / WhatsApp', 'owner.phone', {ph: '+34 600 000 000', type: 'tel'})}${F('Email', 'owner.email', {type: 'email'})}</div></div>
+    <div class="grp"><h4>Tripulación <span>${v.crew.length} a bordo</span></h4><div class="list">${v.crew.map((c, i) => `<div class="li" style="display:grid;grid-template-columns:1fr 1fr auto;gap:6px">
+        <select class="in" data-f="crew.${i}.role">${ROLES.map(r => `<option ${c.role === r ? 'selected' : ''}>${r}</option>`).join('')}</select>
+        <input class="in" data-f="crew.${i}.name" value="${esc(c.name)}" placeholder="Nombre (privado)"><button class="x" data-act="crewdel" data-i="${i}" aria-label="Quitar">${ICON.x}</button>
+        <input class="in" style="grid-column:1/-1" data-f="crew.${i}.cert" value="${esc(c.cert)}" placeholder="Titulación visible para el armador"></div>`).join('')}</div>
+      <button class="btn sm" data-act="crewadd">${ICON.plus} Añadir tripulante</button>
+      <p class="hint">${v.vessel.length >= 17 || s.total > 150 ? 'Recomendado: patrón + marinero/a por eslora o distancia.' : 'Patrón profesional como base; añada marinero/a o mecánico/a si el armador lo requiere.'}</p></div>`;
+  }
+  if (T === 'ruta'){
+    const P = pts(v), c = cum(P);
+    h = `<div class="grp"><h4>Puertos</h4><div class="g2"><label class="f"><span>Salida</span><select class="in" data-act-change="org">${portOpts(v.origin.id)}</select></label><label class="f"><span>Destino</span><select class="in" data-act-change="dst">${portOpts(v.dest.id)}</select></label></div>
+      <div class="g2"><label class="f"><span>Salida prevista</span><input class="in mono" type="datetime-local" data-f="depart" data-t="dt" data-re="1" value="${toLocal(v.depart)}"></label><label class="f"><span>Crucero (kn)</span><input class="in mono" type="number" step="0.5" min="3" data-f="cruiseKn" data-t="n" data-re="1" value="${v.cruiseKn}"></label></div>
+      ${ROUTES[v.origin.id + '-' + v.dest.id] ? `<button class="btn sm" data-act="stdroute">Cargar ruta estándar ${esc(v.origin.name)} → ${esc(v.dest.name)}</button>` : ''}</div>
+    <div class="inst sm"><div><small>Distancia</small><b>${fmtN(s.total, 1)}<u>NM</u></b></div><div><small>Duración est.</small><b>${dur(s.total / num(v.cruiseKn, 15))}</b></div><div><small>Combustible est.</small><b>${v.vessel.lph ? fmtN(s.total / num(v.cruiseKn, 15) * v.vessel.lph * 1.2) : '—'}<u>L</u></b><em>con 20 % de reserva</em></div></div>
+    ${v.vessel.fuelCap && v.vessel.lph && s.total / num(v.cruiseKn, 15) * v.vessel.lph * 1.2 > v.vessel.fuelCap ? `<div class="note warn">${ICON.info}<div><b>Autonomía insuficiente</b> con la reserva del 20 %: planifique escala técnica o reduzca velocidad.</div></div>` : ''}
+    <div class="grp"><h4>Derrota · tramos <span>rumbo verdadero</span></h4><table class="legs"><thead><tr><th>#</th><th>DESDE → HASTA</th><th style="text-align:right">NM</th><th style="text-align:right">RUMBO</th></tr></thead><tbody>
+      ${P.slice(1).map((p, i) => `<tr><td class="mono">${i + 1}</td><td>${i === 0 ? esc(v.origin.name) : 'WP' + i} → ${i === P.length - 2 ? esc(v.dest.name) : 'WP' + (i + 1)}</td><td class="n">${fmtN(c[i + 1] - c[i], 1)}</td><td class="n">${String(Math.round(brg(P[i], p))).padStart(3, '0')}°</td></tr>`).join('')}</tbody></table></div>
+    <div class="grp"><h4>Waypoints <span>${v.waypoints.length}</span></h4><div class="list">${v.waypoints.map((w, i) => `<div class="li"><span class="mono">WP${i + 1} · ${ddm(w.lat, 1)} ${ddm(w.lng, 0)}</span><span class="row" style="gap:2px"><button class="x" data-act="wpup" data-i="${i}" aria-label="Subir">↑</button><button class="x" data-act="wpdel" data-i="${i}" aria-label="Eliminar">${ICON.x}</button></span></div>`).join('')}</div>
+      <div class="row"><button class="btn sm" data-act="wpmode">${ICON.wp} Añadir en la carta</button><button class="btn sm danger" data-act="wpclear" ${v.waypoints.length ? '' : 'disabled'}>Borrar todos</button></div>
+      <p class="hint">Arrastre los waypoints en la carta para ajustar la derrota. Los nuevos se insertan en el tramo más cercano.</p></div>`;
+  }
+  if (T === 'cliente'){
+    const pr = v.privacy;
+    h = `<div class="grp"><h4>Privacidad de la posición</h4>
+      <label class="f"><span>Radio de la zona aproximada · <b id="prRv" style="color:var(--fg)">${pr.radius} NM</b></span><input type="range" id="prR" min="0" max="15" step="1" value="${pr.radius}" data-f="privacy.radius" data-t="n" data-re="1"></label>
+      ${!num(pr.radius) ? `<div class="note warn">${ICON.info}<div>Radio 0: el armador verá la <b>posición exacta</b>.</div></div>` : ''}
+      <label class="f"><span>Retardo de publicación</span><select class="in" data-f="privacy.delayMin" data-t="n" data-re="1">${[0, 15, 30, 60, 120].map(m => `<option value="${m}" ${num(pr.delayMin) === m ? 'selected' : ''}>${m ? m + ' minutos' : 'Sin retardo'}</option>`).join('')}</select></label>
+      <label class="sw">Mostrar estela aproximada<small>Traza difuminada del recorrido</small><input type="checkbox" data-f="privacy.showTrack" ${pr.showTrack ? 'checked' : ''}></label>
+      <p class="hint">En la carta, el círculo ámbar discontinuo muestra exactamente lo que ve el armador. El progreso en millas se redondea al mismo nivel de precisión.</p></div>
+    <div class="sep"></div>
+    <div class="grp"><h4>Enlace para el armador <span>${Sync.on() ? 'en directo (sincronizado)' : 'instantánea en la URL'}</span></h4>
+      <div class="linkbox"><input class="in" id="shUrl" readonly value="Generando…"><button class="btn" data-act="copylink">Copiar</button></div>
+      ${!Sync.on() ? `<p class="hint">Sin sincronización, el enlace lleva la situación actual empaquetada (solo datos públicos). Envíe uno nuevo para actualizar, o active la sincronización en Ajustes para un seguimiento en directo con enlace fijo.</p>` : ''}
+      <div class="row"><a class="btn wa" id="shWa" target="_blank" rel="noopener">${ICON.wa} Enviar por WhatsApp</a><a class="btn" href="?tracking=${encodeURIComponent(v.id)}" target="_blank" rel="noopener">Ver como armador</a></div>
+      <div id="qr" class="qr" hidden></div>
+      <label class="f"><span>Mensaje</span><textarea class="in" id="shMsg" rows="6"></textarea></label></div>`;
+  }
+  if (T === 'check'){
+    const n = CHECKS.filter(([k]) => v.checklist[k]).length;
+    h = `<div class="grp"><h4>Check-in técnico previo <span>${n}/${CHECKS.length}</span></h4><div class="meter" style="--p:${n / CHECKS.length * 100}%"><i></i></div>
+      ${CHECKS.map(([k, l]) => `<label class="sw"><span>${esc(l)}<small>${v.checklist[k] ? 'Verificado ' + fmtDT(v.checklist[k]) : 'Pendiente'}</small></span><input type="checkbox" data-act-change="ck" data-k="${k}" ${v.checklist[k] ? 'checked' : ''}></label>`).join('')}
+      <div class="row"><button class="btn sm" data-act="ckall">Marcar todo</button><button class="btn sm ghost" data-act="cknone">Desmarcar todo</button></div>
+      <p class="hint">El armador ve este checklist en su enlace de seguimiento y en el informe de entrega.</p></div>`;
+  }
+  if (T === 'cierre'){
+    const R = v.report || {}; const done = v.status === 'completed';
+    h = `<div class="grp"><h4>${done ? 'Travesía completada' : 'Finalizar travesía'}</h4>
+      <div class="g2"><label class="f"><span>Llegada</span><input class="in mono" type="datetime-local" id="cArr" ${done ? 'data-f="arrived" data-t="dt"' : ''} value="${toLocal(v.arrived || new Date().toISOString())}"></label>
+        <label class="f"><span>Distancia (NM)</span><input class="in mono" type="number" id="cNm" data-f="report.nm" data-t="n" value="${R.nm || Math.round(s.total)}"></label></div>
+      <div class="g2"><label class="f"><span>Combustible consumido (L)</span><input class="in mono" type="number" data-f="report.fuelL" data-t="n" value="${R.fuelL || ''}"></label><label class="f"><span>Horas de motor</span><input class="in mono" type="number" step="0.1" data-f="report.engineH" data-t="n" value="${R.engineH || ''}"></label></div>
+      <label class="f"><span>Informe del patrón (público)</span><textarea class="in" data-f="report.summary" placeholder="Condiciones, estado del barco, entrega…">${esc(R.summary || '')}</textarea></label>
+      <label class="f"><span>Incidencias (solo en informe al armador)</span><textarea class="in" data-f="report.incidents" rows="2" placeholder="Sin incidencias">${esc(R.incidents || '')}</textarea></label>
+      <label class="sw">Mostrar en el historial público<small>Solo con autorización del armador</small><input type="checkbox" data-f="showcase" ${v.showcase !== false ? 'checked' : ''}></label>
+      <label class="sw">Anonimizar nombre del barco<small>En el historial se mostrará solo el modelo</small><input type="checkbox" data-f="anonymize" ${v.anonymize ? 'checked' : ''}></label>
+      <div class="row">${done ? `<button class="btn" data-act="reopen">Reabrir travesía</button>` : `<button class="btn p" data-act="finish">Finalizar y archivar</button>`}<button class="btn" data-act="print">${ICON.doc} Informe de entrega</button></div></div>
+    <div class="sep"></div><div class="grp"><h4>Zona peligrosa</h4><button class="btn danger" data-act="delete">Eliminar esta travesía</button></div>`;
+  }
+  tc.innerHTML = h;
+  if (T === 'cliente') fillShare(v);
+  $$('[data-act-change]', tc).forEach(el => el.addEventListener('change', onTabChange));
+  const ge = $('#gpsEvery'); if (ge) ge.onchange = e => { A.every = +e.target.value; };
+}
+async function fillShare(v){
+  const url = await shareLink(v); const inp = $('#shUrl'); if (!inp) return; inp.value = url;
+  const msg = `Hola${v.owner.name && !/ejemplo/i.test(v.owner.name) ? ' ' + v.owner.name : ''}, le enviamos el enlace privado de seguimiento de ${vesselLabel(v)} (${v.origin.name} → ${v.dest.name}).\n\nPodrá ver el progreso de la travesía, la hora estimada de llegada, el estado del mar y las notas del patrón:\n${url}\n\nMallorca Yacht Delivery · ${CONFIG.phoneHuman}`;
+  $('#shMsg').value = msg; const ph = (v.owner.phone || '').replace(/\D/g, '');
+  $('#shWa').href = `https://wa.me/${ph}?text=${encodeURIComponent(msg)}`;
+  const q = $('#qr'); if (window.QRCode && q){ q.hidden = false; q.innerHTML = ''; try { new QRCode(q, {text: url.length > 1200 ? baseUrl() + '?tracking=' + v.id : url, width: 168, height: 168, colorDark: '#0A1C30', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.L}); } catch(e){ q.hidden = true; } }
+  $('#shMsg').oninput = e => { $('#shWa').href = `https://wa.me/${ph}?text=${encodeURIComponent(e.target.value)}`; };
+}
+function onTabChange(e){
+  const v = cur(), el = e.target, k = el.dataset.actChange;
+  if (k === 'ck'){ v.checklist[el.dataset.k] = el.checked ? new Date().toISOString() : ''; commit(v, {map: false, tab: true}); }
+  if (k === 'org' || k === 'dst'){ if (el.value === 'custom'){ setMode(k); return; } const key = k === 'org' ? 'origin' : 'dest'; v[key] = portPt(el.value);
+    const std = ROUTES[v.origin.id + '-' + v.dest.id]; v.waypoints = std ? std.map(([lat, lng]) => ({lat, lng})) : []; commit(v, {tab: true}); renderSideSelectOnly(); fitAdmin();
+    if (!std) toast('Sin ruta estándar: añada waypoints en la carta para evitar tierra', 'warn'); }
+}
+function addPos(v, p){ v.track.push({t: p.t || new Date().toISOString(), lat: +num(p.lat).toFixed(5), lng: +num(p.lng).toFixed(5), sog: +num(p.sog).toFixed(1), cog: Math.round(num(p.cog)) % 360, src: p.src || 'manual'});
+  v.track.sort((a, b) => Date.parse(a.t) - Date.parse(b.t)); if (v.status === 'planned'){ startVoyage(v, true); } commit(v, {tab: A.tab === 'puente'}); }
+function startVoyage(v, silent){ v.status = 'active'; if (Date.parse(v.depart) > Date.now() || !v.track.length) v.depart = new Date().toISOString();
+  if (!v.track.length) v.track.push({t: v.depart, lat: v.origin.lat, lng: v.origin.lng, sog: 0, cog: Math.round(courseAt(pts(v), 0)), src: 'manual'});
+  v.log.push({id: uid(), t: v.depart, type: 'nav', pub: true, text: `Salida de ${v.origin.name}. Comienza la travesía hacia ${v.dest.name}.`}); if (!silent) toast('Travesía iniciada · enlace del armador activo'); }
+function onTabClick(e){
+  const b = e.target.closest('[data-act]'); if (!b || b.matches('select')) return; const v = cur(); if (!v) return; const act = b.dataset.act;
+  if (act === 'status'){ const to = b.dataset.v; if (to === v.status) return;
+    if (to === 'active'){ if (v.status === 'planned' && !confirm('¿Iniciar la travesía ahora? Se registrará la hora de salida.')) return; if (v.status === 'completed'){ v.status = 'active'; v.arrived = ''; } else startVoyage(v); commit(v, {tab: true}); renderSide(); }
+    else if (to === 'completed'){ A.tab = 'cierre'; renderSide(); toast('Revise los datos y pulse «Finalizar y archivar»'); }
+    else { v.status = 'planned'; commit(v, {tab: true}); renderSide(); } return; }
+  if (act === 'gps') return gpsOnce(v);
+  if (act === 'gpsauto') return A.watch != null ? (stopGps(), renderTab()) : startGps();
+  if (act === 'pick') return setMode('pos');
+  if (act === 'addpos'){ const lat = parseCoord($('#pLat').value, true), lng = parseCoord($('#pLng').value, false); if (!Number.isFinite(lat) || !Number.isFinite(lng)) return toast('Coordenadas no válidas. Ej.: 39 33.82 N · 002 38.07 E', 'bad');
+    const t = $('#pT').value ? fromLocal($('#pT').value) : new Date().toISOString(); let cog = $('#pCog').value; const last = v.track[v.track.length - 1];
+    if (cog === '' && last) cog = brg(last, {lat, lng}); addPos(v, {lat, lng, sog: $('#pSog').value, cog, t}); if (A.tmp){ A.tmp.remove(); A.tmp = null; } return toast('Posición registrada'); }
+  if (act === 'sim'){ if (v.status === 'completed') return toast('La travesía ya está completada', 'warn'); const P = pts(v), s = stats(v); const last = v.track[v.track.length - 1] || v.origin;
+    const d = Math.min(s.total, (last === v.origin ? 0 : along(last, P).d) + num(v.cruiseKn, 15) * .5); const p = move(pointAt(P, d), Math.random() * 360, Math.random() * .2);
+    addPos(v, {lat: p.lat, lng: p.lng, sog: num(v.cruiseKn) * (.94 + Math.random() * .1), cog: courseAt(P, d), src: 'sim'}); if (d >= s.total - .5) toast('Llegada a destino · finalice en la pestaña Cierre'); return; }
+  if (act === 'undo'){ v.track.pop(); commit(v, {tab: true}); return toast('Último fix eliminado'); }
+  if (act === 'sea'){ v.sea = {bf: +$('#sBf').value, wave: num($('#sWave').value), wind: $('#sWind').value.trim(), note: $('#sNote').value.trim(), t: new Date().toISOString()};
+    const bfN = BF[v.sea.bf]?.[1] || ''; v.log.push({id: uid(), t: v.sea.t, type: 'met', pub: true, text: `Parte: F${v.sea.bf} ${bfN.toLowerCase()}${v.sea.wind ? ', viento ' + v.sea.wind : ''}${v.sea.wave ? ', ola ' + fmtN(v.sea.wave, 1) + ' m (' + douglas(v.sea.wave).toLowerCase() + ')' : ''}. ${v.sea.note}`.trim()});
+    commit(v, {tab: true}); return toast('Parte publicado para el armador'); }
+  if (act === 'tpl'){ $('#lText').value = b.dataset.v; $('#lText').focus(); return; }
+  if (act === 'addlog'){ const t = $('#lText').value.trim(); if (!t) return toast('Escriba el texto de la entrada', 'warn'); v.log.push({id: uid(), t: new Date().toISOString(), type: $('#lType').value, pub: $('#lPub').checked, text: t}); commit(v, {map: false, tab: true}); return toast('Entrada añadida'); }
+  if (act === 'logpub'){ const l = v.log.find(x => x.id === b.dataset.id); l.pub = !l.pub; return commit(v, {map: false, tab: true}); }
+  if (act === 'logdel'){ if (!confirm('¿Eliminar esta entrada?')) return; v.log = v.log.filter(x => x.id !== b.dataset.id); return commit(v, {map: false, tab: true}); }
+  if (act === 'crewadd'){ v.crew.push({role: 'Marinero/a', name: '', cert: 'Formación Básica STCW'}); return commit(v, {map: false, tab: true}); }
+  if (act === 'crewdel'){ v.crew.splice(+b.dataset.i, 1); return commit(v, {map: false, tab: true}); }
+  if (act === 'stdroute'){ v.waypoints = ROUTES[v.origin.id + '-' + v.dest.id].map(([lat, lng]) => ({lat, lng})); commit(v, {tab: true}); return fitAdmin(); }
+  if (act === 'wpmode') return setMode('wp');
+  if (act === 'wpdel'){ v.waypoints.splice(+b.dataset.i, 1); return commit(v, {tab: true}); }
+  if (act === 'wpup'){ const i = +b.dataset.i; if (i > 0){ [v.waypoints[i - 1], v.waypoints[i]] = [v.waypoints[i], v.waypoints[i - 1]]; commit(v, {tab: true}); } return; }
+  if (act === 'wpclear'){ if (confirm('¿Borrar todos los waypoints?')){ v.waypoints = []; commit(v, {tab: true}); } return; }
+  if (act === 'copylink') return copy($('#shUrl').value);
+  if (act === 'ckall' || act === 'cknone'){ CHECKS.forEach(([k]) => v.checklist[k] = act === 'ckall' ? (v.checklist[k] || new Date().toISOString()) : ''); return commit(v, {map: false, tab: true}); }
+  if (act === 'finish'){ if (!confirm(`¿Finalizar la travesía y archivarla en el historial?`)) return;
+    v.status = 'completed'; v.arrived = fromLocal($('#cArr').value) || new Date().toISOString(); const last = v.track[v.track.length - 1];
+    if (!last || dist(last, v.dest) > .3) v.track.push({t: v.arrived, lat: v.dest.lat, lng: v.dest.lng, sog: 0, cog: 0, src: 'manual'});
+    const hrs = (Date.parse(v.arrived) - Date.parse(v.depart)) / 3.6e6; v.report = {...v.report, nm: num(v.report?.nm) || Math.round(routeNm(v)), hours: +hrs.toFixed(2)};
+    if (!v.report.fuelL && v.vessel.lph) v.report.fuelL = Math.round(hrs * v.vessel.lph / 10) * 10; if (!v.report.engineH) v.report.engineH = +(hrs + .3).toFixed(1);
+    v.log.push({id: uid(), t: v.arrived, type: 'port', pub: true, text: `Llegada a ${v.dest.name}. Barco entregado con check-out técnico.`}); stopGps();
+    commit(v, {tab: true}); renderSide(); return toast('Travesía archivada en el historial'); }
+  if (act === 'reopen'){ v.status = 'active'; v.arrived = ''; commit(v, {tab: true}); renderSide(); return; }
+  if (act === 'print') return printReport(v, false);
+  if (act === 'delete'){ if (!confirm(`¿Eliminar definitivamente ${vesselLabel(v)} (${v.id})?`)) return; S.voyages = S.voyages.filter(x => x !== v); A.vid = S.voyages[0]?.id || null; persist(); renderSide(); drawAdmin(true); return toast('Travesía eliminada'); }
+}
+function onMapClick(e){
+  const v = cur(); if (!v || !A.mode) return; const p = {lat: e.latlng.lat, lng: e.latlng.lng};
+  if (A.mode === 'pos'){ if (A.tab !== 'puente'){ A.tab = 'puente'; renderSide(); } $('#pLat').value = ddm(p.lat, 1).replace('′', "'"); $('#pLng').value = ddm(p.lng, 0).replace('′', "'");
+    const last = v.track[v.track.length - 1]; if (last) $('#pCog').value = Math.round(brg(last, p));
+    setMode(null); A.tmp = L.circleMarker(e.latlng, {radius: 7, color: '#F2B84B', weight: 2, fillOpacity: .3}).addTo(A.map); toast('Coordenadas cargadas · pulse «Registrar posición»'); return; }
+  if (A.mode === 'wp'){ const P = pts(v); const i = P.length > 1 ? along(p, P).i : 0; v.waypoints.splice(i, 0, {lat: +p.lat.toFixed(4), lng: +p.lng.toFixed(4)}); commit(v, {tab: A.tab === 'ruta'}); return; }
+  if (A.mode === 'org' || A.mode === 'dst'){ const name = prompt('Nombre del puerto:', A.mode === 'org' ? 'Puerto de salida' : 'Puerto de destino'); if (!name){ setMode(null); renderTab(); return; }
+    v[A.mode === 'org' ? 'origin' : 'dest'] = {id: 'custom-' + uid(), name: name.trim(), lat: +p.lat.toFixed(4), lng: +p.lng.toFixed(4)}; setMode(null); commit(v, {tab: true}); renderSideSelectOnly(); return; }
+  if (A.mode === 'measure'){ A.measure.push(p); if (A.measure.length > 2) A.measure = [p]; drawAdmin(); }
+}
+function fitAdmin(){ const v = cur(); if (!A.map || !v) return; const all = [...pts(v), ...v.track.slice(-50)].map(LL); if (all.length) A.map.fitBounds(all, {padding: [50, 50], maxZoom: 11}); }
+function drawAdmin(fit){
+  if (!A.map) return; A.lay.clearLayers(); const v = cur(); if (!v) return; const P = pts(v);
+  L.polyline(P.map(LL), {color: '#8CC0EE', weight: 2, opacity: .85, dashArray: '7 7', className: 'rt'}).addTo(A.lay);
+  [[v.origin, false], [v.dest, true]].forEach(([q, m]) => L.marker(LL(q), {icon: portIcon(m), keyboard: false}).addTo(A.lay).bindTooltip(esc(q.name), {permanent: true, direction: 'right', className: 'plain', offset: [6, 0]}));
+  v.waypoints.forEach((w, i) => { const mk = L.marker(LL(w), {icon: wpIcon(i + 1), draggable: true, zIndexOffset: 500}).addTo(A.lay);
+    mk.bindTooltip(`WP${i + 1} · ${ddm(w.lat, 1)} ${ddm(w.lng, 0)}`, {direction: 'top', offset: [0, -10]});
+    mk.on('dragend', ev => { const ll = ev.target.getLatLng(); v.waypoints[i] = {lat: +ll.lat.toFixed(4), lng: +ll.lng.toFixed(4)}; commit(v, {tab: A.tab === 'ruta'}); });
+    mk.on('contextmenu', () => { if (confirm(`¿Eliminar WP${i + 1}?`)){ v.waypoints.splice(i, 1); commit(v, {tab: A.tab === 'ruta'}); } }); });
+  if (v.track.length > 1) L.polyline(v.track.map(LL), {color: '#5BE39A', weight: 2.5, opacity: .95, className: 'rt'}).addTo(A.lay);
+  v.track.slice(-30, -1).forEach(p => L.circleMarker(LL(p), {radius: 2.5, color: '#5BE39A', weight: 1, fillOpacity: .8}).addTo(A.lay).bindTooltip(`${fmtDT(p.t)} · ${fmtN(p.sog, 1)} kn · ${p.src}`, {direction: 'top'}));
+  const last = v.track[v.track.length - 1];
+  if (last && v.status !== 'planned'){
+    L.marker(LL(last), {icon: boatIcon(last.cog), zIndexOffset: 1000}).addTo(A.lay).bindPopup(`<b>${esc(vesselLabel(v))}</b><br>${ddm(last.lat, 1)} ${ddm(last.lng, 0)}<br>${fmtN(last.sog, 1)} kn · ${Math.round(last.cog)}°<br>${fmtDT(last.t)} · ${last.src}`);
+    if (v.status === 'active'){ const pv = publicView(v); if (pv.zone){ if (pv.zone.r) L.circle(LL(pv.zone), {radius: pv.zone.r * 1852, color: '#F2B84B', weight: 1.5, dashArray: '4 6', fill: false, interactive: false}).addTo(A.lay);
+      L.circleMarker(LL(pv.zone), {radius: 4, color: '#F2B84B', weight: 1.5, fillOpacity: .6}).addTo(A.lay).bindTooltip('Lo que ve el armador', {direction: 'bottom'}); } } }
+  if (A.measure.length){ A.measure.forEach(m => L.circleMarker(LL(m), {radius: 5, color: '#fff', weight: 2, fillColor: '#F2B84B', fillOpacity: 1}).addTo(A.lay));
+    if (A.measure.length === 2){ const [a, b] = A.measure; L.polyline([LL(a), LL(b)], {color: '#F2B84B', weight: 2, dashArray: '4 4'}).addTo(A.lay)
+      .bindTooltip(`${fmtN(dist(a, b), 2)} NM · ${String(Math.round(brg(a, b))).padStart(3, '0')}° · ${dur(dist(a, b) / num(v.cruiseKn, 15))} a ${v.cruiseKn} kn`, {permanent: true, direction: 'center'}).openTooltip(); } }
+  if (fit) fitAdmin();
+}
+/* GPS de a bordo */
+function gpsFix(pos, v, src){ const c = pos.coords; const last = v.track[v.track.length - 1]; const p = {lat: c.latitude, lng: c.longitude};
+  let sog = c.speed != null && !isNaN(c.speed) ? c.speed * 1.943844 : null, cog = c.heading != null && !isNaN(c.heading) ? c.heading : null;
+  if (last){ const dh = (pos.timestamp - Date.parse(last.t)) / 3.6e6; if (sog == null && dh > 0) sog = dist(last, p) / dh; if (cog == null) cog = brg(last, p); }
+  addPos(v, {...p, sog: sog || 0, cog: cog || 0, t: new Date(pos.timestamp).toISOString(), src}); }
+function gpsOnce(v){ if (!navigator.geolocation) return toast('Este dispositivo no tiene geolocalización', 'bad'); toast('Obteniendo posición GPS…');
+  navigator.geolocation.getCurrentPosition(p => { gpsFix(p, v, 'gps'); toast(`Fix GPS registrado · precisión ${Math.round(p.coords.accuracy)} m`); },
+    e => toast(e.code === 1 ? 'Permiso de ubicación denegado' : 'No se pudo obtener la posición (¿HTTPS?)', 'bad'), {enableHighAccuracy: true, timeout: 25000, maximumAge: 5000}); }
+async function startGps(){ const v = cur(); if (!navigator.geolocation) return toast('Este dispositivo no tiene geolocalización', 'bad'); const vid = v.id; A.lastSave = 0;
+  A.watch = navigator.geolocation.watchPosition(p => { const vv = byId(vid); if (!vv) return; if (Date.now() - A.lastSave >= A.every * 60000){ A.lastSave = Date.now(); gpsFix(p, vv, 'gps'); } },
+    e => { toast(e.code === 1 ? 'Permiso de ubicación denegado' : 'GPS sin señal temporalmente', 'warn'); }, {enableHighAccuracy: true, maximumAge: 10000, timeout: 60000});
+  try { A.wake = await navigator.wakeLock?.request('screen'); } catch(e){} toast(`Auto GPS activo · registro cada ${A.every} min`); renderTab(); }
+function stopGps(){ if (A.watch != null){ navigator.geolocation.clearWatch(A.watch); A.watch = null; } try { A.wake?.release(); } catch(e){} A.wake = null; }
+document.addEventListener('visibilitychange', async () => { if (document.visibilityState === 'visible' && A.watch != null && !A.wake){ try { A.wake = await navigator.wakeLock?.request('screen'); } catch(e){} } });
+
+/* Ajustes */
+function openSettings(){
+  const d = $('#dlg'); const st = S.settings;
+  d.innerHTML = `<div class="dh"><h3>Ajustes</h3><button class="btn sm ghost" data-close aria-label="Cerrar">${ICON.x}</button></div><div class="db">
+    <div class="grp"><h4>Seguridad</h4><div class="g2"><input class="in mono" id="sp1" type="password" inputmode="numeric" placeholder="PIN actual" autocomplete="current-password"><input class="in mono" id="sp2" type="password" inputmode="numeric" placeholder="Nuevo PIN (4–12)" autocomplete="new-password"></div><button class="btn sm" id="spSave">Cambiar PIN</button>
+      <p class="hint">El PIN protege el panel en este dispositivo. Para una protección real en Internet, sirva el panel desde una ruta con contraseña del servidor (p. ej. .htaccess).</p></div>
+    <div class="grp"><h4>Escaparate</h4><label class="sw">Mostrar aviso «Datos de ejemplo»<small>Desactívelo cuando cargue sus travesías reales</small><input type="checkbox" id="sDemo" ${st.demo ? 'checked' : ''}></label>
+      <button class="btn sm" id="sExpPub">Exportar historial público (JSON para incrustar)</button></div>
+    <div class="grp"><h4>Sincronización en directo</h4><p class="hint">Permite que el armador vea la posición en directo desde su móvil con un enlace fijo. Suba el endpoint PHP a su hosting e indique aquí su URL y clave. Solo se envían datos públicos ya protegidos (zona aproximada).</p>
+      <input class="in mono" id="sUrl" placeholder="https://www.mallorcayachtdelivery.com/seguimiento/myd-sync.php" value="${esc(st.syncUrl)}"><input class="in mono" id="sKey" type="password" placeholder="Clave del endpoint" value="${esc(st.syncKey)}">
+      <div class="row"><button class="btn sm" id="sSync">Guardar y publicar todo</button></div>
+      <details><summary>Ver código del endpoint (myd-sync.php)</summary><pre id="phpc"></pre><button class="btn sm" id="sCopyPhp" style="margin-top:8px">Copiar código</button></details></div>
+    <div class="grp"><h4>Datos</h4><div class="row"><button class="btn sm" id="sExp">Exportar copia</button><label class="btn sm">Importar copia<input type="file" id="sImp" accept="application/json" hidden></label></div>
+      <div class="row"><button class="btn sm ghost" id="sDemoReset">Restaurar datos de ejemplo</button><button class="btn sm danger" id="sWipe">Empezar en limpio</button></div>
+      <p class="hint">Los datos se guardan en este navegador. Exporte una copia con regularidad.</p></div></div>`;
+  $('#phpc', d).textContent = PHP_ENDPOINT;
+  d.showModal();
+  d.onclick = e => { if (e.target === d || e.target.closest('[data-close]')) d.close(); };
+  $('#spSave', d).onclick = async () => { const a = $('#sp1', d).value.trim(), b = $('#sp2', d).value.trim(); if (!(await checkPin(a))) return toast('PIN actual incorrecto', 'bad'); if (!/^\d{4,12}$/.test(b)) return toast('El nuevo PIN debe tener 4–12 dígitos', 'bad'); S.settings.pinHash = await sha(b); persist(); toast('PIN actualizado'); $('#sp1', d).value = $('#sp2', d).value = ''; };
+  $('#sDemo', d).onchange = e => { S.settings.demo = e.target.checked; persist(); };
+  $('#sExpPub', d).onclick = () => { const o = showcaseLocal(); o.active = 0; download('myd-historial-publico.json', JSON.stringify(o)); toast('Pegue el contenido en el bloque <script id="myd-showcase"> del HTML'); };
+  $('#sSync', d).onclick = async () => { S.settings.syncUrl = $('#sUrl', d).value.trim(); S.settings.syncKey = $('#sKey', d).value; persist(); if (!S.settings.syncUrl) return toast('Sincronización desactivada');
+    try { for (const v of S.voyages.filter(x => x.status !== 'completed')) await Sync.put(v.id, publicView(v)); await Sync.put('showcase', showcaseLocal()); toast('Sincronizado correctamente'); renderHead(); } catch(e){ toast('No se pudo conectar con el endpoint: ' + e.message, 'bad'); } };
+  $('#sCopyPhp', d).onclick = () => copy(PHP_ENDPOINT);
+  $('#sExp', d).onclick = () => download(`myd-copia-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(S, null, 1));
+  $('#sImp', d).onchange = async e => { const f = e.target.files[0]; if (!f) return; try { const o = JSON.parse(await f.text()); if (!Array.isArray(o.voyages)) throw 0; if (!confirm(`¿Sustituir los datos actuales por ${o.voyages.length} travesías del archivo?`)) return; S = o; S.settings = {pinHash: '', demo: false, syncUrl: '', syncKey: '', ...(o.settings || {})}; persist(); d.close(); A.vid = null; viewAdmin(); toast('Copia importada'); } catch(_){ toast('Archivo no válido', 'bad'); } };
+  $('#sDemoReset', d).onclick = () => { if (!confirm('¿Sustituir todos los datos por los de ejemplo?')) return; const keep = S.settings; S = seed(); S.settings = {...S.settings, pinHash: keep.pinHash, syncUrl: keep.syncUrl, syncKey: keep.syncKey}; persist(); d.close(); A.vid = null; viewAdmin(); toast('Datos de ejemplo restaurados'); };
+  $('#sWipe', d).onclick = () => { if (!confirm('¿Borrar TODAS las travesías? Esta acción no se puede deshacer (exporte antes una copia).')) return; S.voyages = []; S.settings.demo = false; persist(); d.close(); A.vid = null; viewAdmin(); toast('Datos borrados'); };
+}
+
+route();
+</script>
+<noscript><p style="padding:24px;color:#E7EEF5;font-family:sans-serif">Esta aplicación necesita JavaScript activado.</p></noscript>
+</body>
+</html>
