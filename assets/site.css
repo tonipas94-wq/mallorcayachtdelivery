@@ -468,3 +468,11 @@ footer .logo .lg{color:#B18A1E}
 .qsec .s-head p{margin-top:16px}
 .qsec .q{box-shadow:0 24px 60px rgba(5,15,30,.12);border:1px solid var(--line)}
 @media (max-width:900px){.qsec{grid-template-columns:1fr;gap:28px}}
+
+/* Aviso de precio estimado + estado del envío por email del cotizador */
+.est .disc{margin-top:12px;padding:10px 12px;border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:8px;background:var(--surface);font-size:12px;line-height:1.5;color:var(--fg)}
+.sendst{margin:0 0 12px;padding:10px 12px;border-radius:10px;background:var(--surface);color:var(--mute);font:500 13px/1.45 var(--f-sans);text-align:left}
+.sendst.ok{background:color-mix(in srgb,var(--ok) 14%,transparent);color:var(--ok)}
+.sendst.ko{background:color-mix(in srgb,#E06A2B 16%,transparent);color:#B54708}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .sendst.ko{color:#FFB184}}
+:root[data-theme="dark"] .sendst.ko{color:#FFB184}
