@@ -1,5 +1,10 @@
 /* Mallorca Yacht Delivery · hoja de estilos compartida
    Concepto: amanecer en el horizonte como escenario de marca; el resto, carta técnica limpia con datos náuticos reales. */
+/* Tipografías autoalojadas (sin Google Fonts) */
+@font-face{font-family:'Inter';src:url(/assets/fonts/inter-latin-var.woff2) format('woff2');font-weight:100 900;font-style:normal;font-display:swap;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'IBM Plex Mono';src:url(/assets/fonts/plex-mono-latin-400.woff2) format('woff2');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'IBM Plex Mono';src:url(/assets/fonts/plex-mono-latin-500.woff2) format('woff2');font-weight:500;font-style:normal;font-display:swap}
+@font-face{font-family:'IBM Plex Mono';src:url(/assets/fonts/plex-mono-latin-600.woff2) format('woff2');font-weight:600;font-style:normal;font-display:swap}
 :root{
   --bg:#FFFFFF; --surface:#F2F5F8; --card:#FFFFFF; --fg:#0A1C30; --mute:#56687A; --line:#DFE6ED;
   --accent:#1D4E89; --btn:#0A1C30; --btn-fg:#FFFFFF; --ok:#1E8E54; --chip:#F5F7F9;
@@ -476,3 +481,13 @@ footer .logo .lg{color:#B18A1E}
 .sendst.ko{background:color-mix(in srgb,#E06A2B 16%,transparent);color:#B54708}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .sendst.ko{color:#FFB184}}
 :root[data-theme="dark"] .sendst.ko{color:#FFB184}
+
+/* Consentimiento RGPD en el cotizador */
+.consent{display:flex;gap:10px;align-items:flex-start;margin-top:14px;font-size:12.5px;line-height:1.45;color:var(--mute);cursor:pointer}
+.consent input{flex:none;width:18px;height:18px;margin:1px 0 0;accent-color:var(--fg)}
+.consent a{color:var(--accent)}
+/* Teléfono enlazado en el menú móvil */
+.drawer a.phone{border-bottom:0;padding:16px 0 0;font-family:var(--f-mono);font-size:var(--s-md);color:#fff}
+/* Botones flotantes ocultos mientras se rellena el cotizador */
+.fab{transition:opacity .2s,transform .2s}
+.fab.off{opacity:0;pointer-events:none;transform:translateY(16px)}

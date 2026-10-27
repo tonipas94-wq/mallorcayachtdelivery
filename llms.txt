@@ -1,18 +1,19 @@
 # Mallorca Yacht Delivery
 
-> Mallorca Yacht Delivery (mallorcayachtdelivery.com) is a yacht delivery service based in Palma de Mallorca, Spain. A professionally licensed crew (skipper, plus deckhand or marine engineer when needed) moves motor yachts of 33–66 ft (10–20 m) by sea between ports in Mallorca and between Mallorca, Ibiza, Formentera and Menorca. Deliveries to or from mainland Spain are available on request.
+> Mallorca Yacht Delivery (mallorcayachtdelivery.com) is a port-to-port yacht delivery service by sea, based in Palma de Mallorca, Spain. Every delivery always has a professionally licensed crew on board: a skipper (plus a deckhand or marine engineer when needed) moves motor yachts of 33–66 ft (10–20 m) by sea between ports in Mallorca and between Mallorca, Ibiza, Formentera and Menorca. Deliveries to or from mainland Spain are available on request.
 >
 > Mallorca Yacht Delivery es un servicio de transporte de barcos por mar con tripulación profesional y base en Palma de Mallorca.
 
-Data updated 2026-10-26. Prices exclude Spanish VAT (21%).
+Data updated 2026-10-27. Prices exclude Spanish VAT (21%).
 
 ## Pages
 - [Home (Spanish)](https://www.mallorcayachtdelivery.com/): service overview, quote calculator, rates, routes, FAQ.
 - [Home (English)](https://www.mallorcayachtdelivery.com/en/): the same in English.
-- [Deliveries between Mallorca ports](https://www.mallorcayachtdelivery.com/traslado-barcos-entre-puertos-mallorca/): berth changes, boatyards, winter storage, sales handovers. Usually one day.
-- [Ibiza & Formentera ↔ Mallorca](https://www.mallorcayachtdelivery.com/traslado-barco-ibiza-formentera-mallorca/)
-- [Menorca ↔ Mallorca](https://www.mallorcayachtdelivery.com/traslado-barco-menorca-mallorca/)
-- [Cargo ship loading in Palma (optional extra)](https://www.mallorcayachtdelivery.com/carga-yates-buque-caribe/)
+- Deliveries between Mallorca ports — [ES](https://www.mallorcayachtdelivery.com/traslado-barcos-entre-puertos-mallorca/) · [EN](https://www.mallorcayachtdelivery.com/en/yacht-delivery-between-mallorca-ports/): berth changes, boatyards, winter storage, sales handovers. Usually one day.
+- Ibiza & Formentera ↔ Mallorca — [ES](https://www.mallorcayachtdelivery.com/traslado-barco-ibiza-formentera-mallorca/) · [EN](https://www.mallorcayachtdelivery.com/en/yacht-delivery-ibiza-formentera-mallorca/)
+- Menorca ↔ Mallorca — [ES](https://www.mallorcayachtdelivery.com/traslado-barco-menorca-mallorca/) · [EN](https://www.mallorcayachtdelivery.com/en/yacht-delivery-menorca-mallorca/)
+- Mainland Spain ↔ Balearics, on request (Barcelona, Tarragona, Valencia, Dénia, Alicante, Cartagena) — [ES](https://www.mallorcayachtdelivery.com/traslado-barcos-peninsula-baleares/) · [EN](https://www.mallorcayachtdelivery.com/en/yacht-delivery-mainland-spain-mallorca/)
+- Cargo ship loading in Palma (optional extra) — [ES](https://www.mallorcayachtdelivery.com/carga-yates-buque-caribe/) · [EN](https://www.mallorcayachtdelivery.com/en/yacht-shipping-palma-caribbean/)
 
 ## Rates
 - Professional skipper 33–46 ft (10–14 m): €250–300 per day.

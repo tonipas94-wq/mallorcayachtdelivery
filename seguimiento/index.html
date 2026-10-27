@@ -21,9 +21,7 @@
 <meta property="og:image" content="https://www.mallorcayachtdelivery.com/assets/hero/yate-aereo-1600.jpg">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preload" href="/assets/fonts/inter-latin-var.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <!--
   MALLORCA YACHT DELIVERY · TRACKER (archivo único)
@@ -48,6 +46,11 @@
   --f:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;--m:'IBM Plex Mono',ui-monospace,Menlo,monospace;
   --hh:58px;--r:12px;color-scheme:dark;
 }
+/* Tipografías autoalojadas (sin Google Fonts) */
+@font-face{font-family:'Inter';src:url(/assets/fonts/inter-latin-var.woff2) format('woff2');font-weight:100 900;font-style:normal;font-display:swap;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'IBM Plex Mono';src:url(/assets/fonts/plex-mono-latin-400.woff2) format('woff2');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'IBM Plex Mono';src:url(/assets/fonts/plex-mono-latin-500.woff2) format('woff2');font-weight:500;font-style:normal;font-display:swap}
+@font-face{font-family:'IBM Plex Mono';src:url(/assets/fonts/plex-mono-latin-600.woff2) format('woff2');font-weight:600;font-style:normal;font-display:swap}
 @font-face{font-family:'Playfair Display';src:url(/assets/playfair-display-latin.woff2) format('woff2');
   font-weight:400 900;font-style:normal;font-display:swap}
 *{box-sizing:border-box}
@@ -201,7 +204,7 @@ input[type=range]{width:100%;accent-color:var(--acc)}
 /* ---------- Escaparate ---------- */
 .sc-hero{position:relative;isolation:isolate;padding-block:clamp(64px,9vw,132px) 34px;overflow:hidden}
 .sc-hero::before{content:"";position:absolute;inset:0;z-index:-2;
-  background:#06223A url(/assets/hero/yate-aereo-1600.jpg) 50% 2%/cover no-repeat}
+  background:#06223A url(/assets/hero/yate-aereo-1600.jpg) 50% 2%/cover no-repeat;background-image:image-set(url(/assets/hero/yate-aereo-1600.avif) type('image/avif'),url(/assets/hero/yate-aereo-1600.webp) type('image/webp'),url(/assets/hero/yate-aereo-1600.jpg) type('image/jpeg'))}
 .sc-hero::after{content:"";position:absolute;inset:0;z-index:-1;background:
   linear-gradient(90deg,rgba(5,14,24,.93) 0%,rgba(5,14,24,.74) 38%,rgba(5,14,24,.30) 68%),
   linear-gradient(0deg,var(--bg) 1%,rgba(5,14,24,.10) 52%)}
@@ -428,6 +431,7 @@ body.embed .fab{display:none}
 }
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
+<script src="/assets/analytics.js" defer></script>
 </head>
 <body>
 <header class="top">
@@ -458,7 +462,9 @@ const CONFIG = {
   phone: '+34646696410', phoneHuman: '+34 646 69 64 10', wa: '34646696410',
   email: 'info@blue-mediterranean.com',
   publicUrl: '',          // vacío = esta misma página (https://www.mallorcayachtdelivery.com/seguimiento/)
-  pin: '4444',            // PIN del panel del capitán. Solo se cambia aquí, en el código.
+  // PIN del panel del capitán: solo se guarda su huella PBKDF2-SHA256 (el PIN no aparece en el código).
+  // Para cambiarlo: python3 -c "import hashlib,secrets;p=input('PIN: ');s=secrets.token_hex(16);print(s, hashlib.pbkdf2_hmac('sha256',p.encode(),bytes.fromhex(s),310000).hex())"
+  pinSalt: 'd67f03a912ddcc2c667da5a5821cef9a', pinHash: 'a1e3590b2fcf0c370826faf4b0e421709f02283bcc868235079c8bc4ed65bf4c', pinIter: 310000,
   alertTo: 'info@blue-mediterranean.com',  // Aviso por email si se edita una travesía ya finalizada.
   storageKey: 'myd.tracker.v2',
   refreshSec: 60,
@@ -591,7 +597,7 @@ function baseVoyage(){ const t = new Date(); t.setDate(t.getDate() + 1); t.setHo
   return { id: genId(), status: 'planned', createdAt: new Date().toISOString(),
     vessel: {name:'', model:'', builder:'', length:15, beam:4.5, year:2020, flag:'ES', engines:'', fuelCap:2000, lph:180},
     owner: {name:'', phone:'', email:''},
-    crew: [{role:'Patrón', name:'', cert:'Capitán de Yate · STCW'}],
+    crew: [{role:'Patrón', name:'', cert:'Patrón de Altura · STCW'}],
     origin: portPt('bcn'), dest: portPt('pmi'), waypoints: (ROUTES['bcn-pmi'] || []).map(([lat, lng]) => ({lat, lng})),
     depart: t.toISOString(), cruiseKn: 18, etaManual: '', arrived: '',
     track: [], log: [], sea: {bf: 2, wave: 0.3, wind: '', note: '', t: ''}, fuelPct: 95,
@@ -614,11 +620,11 @@ const DEMO_SPECS = [
    vessel:{name:'Mestral', model:'Princess F50', builder:'Princess Yachts', length:15.6, beam:4.4, year:2022, flag:'GB', engines:'2× Volvo Penta IPS 800', fuelCap:1900},
    sea:{bf:3, wave:.5, wind:'N 9 kn'},
    crew:[], summary:'Traslado directo Barcelona → Palma. Salida con mar llana y Tramontana flojita de popa desde el través de Dragonera. Parámetros de motor nominales durante toda la travesía. Entrega en Club de Mar con check-out técnico y reportaje fotográfico firmado por el armador.'},
-  {id:'MYD-2609-RIVA56', dep:'2026-09-27T06:30', from:'atb', to:'pmi', kn:23, lph:260, fuelEnd:21,
+  {id:'MYD-2609-RIVA56', dep:'2026-09-27T08:10', from:'mah', to:'pmi', kn:23, lph:260, fuelEnd:55,
    vessel:{name:'Lady Blau', model:'Riva 56 Rivale', builder:'Riva', length:17.3, beam:4.7, year:2021, flag:'MT', engines:'2× MAN V8 1000', fuelCap:3200},
-   sea:{bf:4, wave:1.1, wind:'NO 16 kn'},
+   sea:{bf:3, wave:.7, wind:'N 11 kn'},
    crew:[{role:'Marinero/a', name:'', cert:'Formación Básica STCW'}, {role:'Mecánico/a', name:'', cert:'Mecánico naval'}],
-   summary:'Travesía de altura Antibes → Palma con ventana meteorológica confirmada 72 h antes de zarpar. Mistral residual en el golfo de León con mar de popa; guardias de 3 h y escucha permanente en canal 16. Repostaje completo en origen y llegada a Palma con un 21 % de reserva.'},
+   summary:'Traslado Mahón → Palma por la costa sur de Menorca y el levante de Mallorca, con ventana meteorológica confirmada 48 h antes de zarpar. Tramontana flojita residual en el canal de Menorca, mar de aleta y parámetros de motor nominales. Entrega en Palma con check-out técnico y un 55 % de combustible a bordo.'},
   {id:'MYD-2608-AXOP37', dep:'2026-08-22T09:15', from:'ibz', to:'pmi', kn:26, lph:105, fuelEnd:48,
    vessel:{name:'Es Vedrà', model:'Axopar 37 Sun-Top', builder:'Axopar', length:11.5, beam:3.3, year:2023, flag:'ES', engines:'2× Mercury V8 300', fuelCap:730},
    sea:{bf:2, wave:.3, wind:'SO 6 kn'},
@@ -638,7 +644,7 @@ function buildDemo(sp, i){
   v.track.push({t: v.arrived, lat: v.dest.lat, lng: v.dest.lng, sog: 0, cog: 0, src: 'gps'});
   v.sea = {...sp.sea, note: '', t: v.depart};
   v.checklist = Object.fromEntries(CHECKS.map(([k], j) => [k, new Date(t0 - (150 - j * 10) * M).toISOString()]));
-  v.crew = [{role: 'Patrón', name: '', cert: 'Capitán de Yate · STCW'}, ...sp.crew];
+  v.crew = [{role: 'Patrón', name: '', cert: 'Patrón de Altura · STCW'}, ...sp.crew];
   const at = h => new Date(t0 + h * H).toISOString();
   v.log = [
     {id: 'l' + i + '1', t: new Date(t0 - 155 * M).toISOString(), type: 'tec', pub: true, text: `Check-in técnico en ${v.origin.name}: sala de máquinas, niveles, sentinas, gobierno y electrónica revisados punto por punto. Reportaje fotográfico de estado enviado al armador.`},
@@ -1066,13 +1072,18 @@ function printReport(src, isPublic){
    ============================================================ */
 const A = {vid: null, tab: 'puente', mode: null, measure: [], watch: null, every: 15, lastSave: 0, wake: null, map: null, lay: null, tmp: null};
 const isAuthed = () => ss.get('myd.admin') === '1';
-async function checkPin(pin){ return String(pin) === String(CONFIG.pin); }
+async function checkPin(pin){
+  try { const enc = new TextEncoder(); const salt = Uint8Array.from(CONFIG.pinSalt.match(/../g), x => parseInt(x, 16));
+    const key = await crypto.subtle.importKey('raw', enc.encode(String(pin)), 'PBKDF2', false, ['deriveBits']);
+    const bits = await crypto.subtle.deriveBits({name: 'PBKDF2', hash: 'SHA-256', salt, iterations: CONFIG.pinIter}, key, 256);
+    return [...new Uint8Array(bits)].map(x => x.toString(16).padStart(2, '0')).join('') === CONFIG.pinHash;
+  } catch(e){ return false; } }
 function viewAdmin(){
   setNav('cap');
   if (!isAuthed()){
     app.innerHTML = `<div class="login"><form class="card" id="lg"><span class="eyebrow">Acceso restringido</span><h1>Panel del capitán</h1>
       <p class="mute" style="font-size:14px">Gestión de travesías, posiciones, bitácora y enlaces de seguimiento.</p>
-      <input class="in pin" id="pin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="12" placeholder="••••" aria-label="PIN">
+      <input class="in pin" id="pin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="12" placeholder="••••••••" aria-label="PIN">
       <button class="btn p" type="submit">Entrar</button>
       <p class="hint">Acceso reservado al equipo de Mallorca Yacht Delivery.</p></form></div>`;
     $('#pin').focus();
